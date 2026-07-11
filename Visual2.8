@@ -104,6 +104,8 @@ return function(env)
     local hiddenParts = setmetatable({}, {__mode = "k"}) 
     local currentFont = "Default"
     local originalFonts = setmetatable({}, {__mode = "k"})
+    local originalLayouts = {}
+    local screenGuiActive = false
     
     local originalName = LocalPlayer.Name
     local originalDisplayName = LocalPlayer.DisplayName
@@ -1213,10 +1215,10 @@ return function(env)
     -- ==========================================
     local settingsFile = "FTF_MobileControls.json"
     local defaultSettings = {
-        Thumbstick = { X = 0.15, Y = 0.75, Size = 120 },
-        Jump = { X = 0.85, Y = 0.75, Size = 70 },
-        E = { X = 0.75, Y = 0.8, Size = 55 },
-        C = { X = 0.75, Y = 0.6, Size = 55 }
+        Thumbstick = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 120 },
+        Jump = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 70 },
+        E = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 55 },
+        C = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 55 }
     }
 
     local function loadControlSettings()
@@ -1227,7 +1229,7 @@ return function(env)
                 loaded = HttpService:JSONDecode(raw)
             end
         end)
-        return loaded or HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
+        return loaded
     end
 
     local controlSettings = loadControlSettings()
@@ -1275,30 +1277,26 @@ return function(env)
         }
     end
 
-    local function getRelativeCoordsOfParent(absPos, parent)
-        if not parent then return 0, 0 end
-        local parentPos = parent.AbsolutePosition
-        local parentSize = parent.AbsoluteSize
-        local relX = (absPos.X - parentPos.X) / parentSize.X
-        local relY = (absPos.Y - parentPos.Y) / parentSize.Y
-        return relX, relY
+    local function backupOriginalLayouts()
+        local realBtns = getRealButtons()
+        for key, btn in pairs(realBtns) do
+            if btn and not originalLayouts[key] then
+                originalLayouts[key] = {
+                    Position = btn.Position,
+                    Size = btn.Size
+                }
+            end
+        end
     end
 
     local function applyControlSettings()
         pcall(function()
-            local camera = workspace.CurrentCamera
-            local screenWidth = camera and camera.ViewportSize.X or 1000
-            local screenHeight = camera and camera.ViewportSize.Y or 600
             local realBtns = getRealButtons()
-            
-            for key, realButton in pairs(realBtns) do
-                local config = controlSettings[key]
-                if realButton and config and realButton.Parent then
-                    realButton.AnchorPoint = Vector2.new(0.5, 0.5)
-                    local absPos = Vector2.new(config.X * screenWidth, config.Y * screenHeight)
-                    local relX, relY = getRelativeCoordsOfParent(absPos, realButton.Parent)
-                    realButton.Position = UDim2.new(relX, 0, relY, 0)
-                    realButton.Size = UDim2.fromOffset(config.Size, config.Size)
+            for key, btn in pairs(realBtns) do
+                local saved = controlSettings and controlSettings[key]
+                if btn and saved then
+                    btn.Position = UDim2.new(saved.XS, saved.XO, saved.YS, saved.YO)
+                    btn.Size = UDim2.fromOffset(saved.Size, saved.Size)
                 end
             end
         end)
@@ -1307,55 +1305,31 @@ return function(env)
     task.spawn(function()
         while true do
             task.wait(1.5)
-            applyControlSettings()
+            if not screenGuiActive then
+                applyControlSettings()
+            end
         end
     end)
 
-    -- Detecta e captura as coordenadas 1:1 iniciais da UI nativa do jogo no frame atual
-    local function captureCurrentPositions()
-        local camera = workspace.CurrentCamera
-        local screenWidth = camera and camera.ViewportSize.X or 1000
-        local screenHeight = camera and camera.ViewportSize.Y or 600
-        
-        local function getAbsoluteCenterScale(btn)
-            if not btn or not btn:IsA("GuiObject") then return nil end
-            local absPos = btn.AbsolutePosition
-            local absSize = btn.AbsoluteSize
-            return {
-                X = (absPos.X + absSize.X / 2) / screenWidth,
-                Y = (absPos.Y + absSize.Y / 2) / screenHeight,
-                Size = math.max(absSize.X, absSize.Y)
-            }
-        end
-
-        local currentSetup = HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
-        local realBtns = getRealButtons()
-
-        for key, btn in pairs(realBtns) do
-            local coords = getAbsoluteCenterScale(btn)
-            if coords then currentSetup[key] = coords end
-        end
-
-        return currentSetup
-    end
-
     local function openControlEditor()
+        screenGuiActive = true
+        backupOriginalLayouts()
+
         local screenGui = Instance.new("ScreenGui")
         screenGui.Name = "FTF_EditorDeControles"
-        screenGui.IgnoreGuiInset = true -- Crucial para o alinhamento absoluto 1:1
+        screenGui.IgnoreGuiInset = true
         screenGui.ResetOnSpawn = false
         screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
         local bg = Instance.new("Frame")
         bg.Size = UDim2.new(1, 0, 1, 0)
         bg.BackgroundColor3 = Color3.fromRGB(15, 12, 12)
-        bg.BackgroundTransparency = 0.55
+        bg.BackgroundTransparency = 0.5
         bg.BorderSizePixel = 0
         bg.Parent = screenGui
 
         local topBar = Instance.new("Frame")
         topBar.Size = UDim2.new(1, 0, 0, 60)
-        topBar.Position = UDim2.new(0, 0, 0, 0)
         topBar.BackgroundColor3 = Color3.fromRGB(30, 8, 8)
         topBar.BackgroundTransparency = 0.15
         topBar.BorderSizePixel = 0
@@ -1398,8 +1372,8 @@ return function(env)
         cornerS.Parent = salvarBtn
 
         local sizePanel = Instance.new("Frame")
-        sizePanel.Size = UDim2.new(0, 320, 0, 90)
-        sizePanel.Position = UDim2.new(0.5, -160, 1, -110)
+        sizePanel.Size = UDim2.new(0, 340, 0, 100)
+        sizePanel.Position = UDim2.new(0.5, -170, 1, -120)
         sizePanel.BackgroundColor3 = Color3.fromRGB(45, 14, 14)
         sizePanel.BorderSizePixel = 1
         sizePanel.BorderColor3 = Color3.fromRGB(110, 30, 30)
@@ -1410,17 +1384,17 @@ return function(env)
         panelCorner.Parent = sizePanel
 
         local sliderLabel = Instance.new("TextLabel")
-        sliderLabel.Size = UDim2.new(1, 0, 0, 30)
+        sliderLabel.Size = UDim2.new(1, 0, 0, 35)
         sliderLabel.BackgroundTransparency = 1
         sliderLabel.Text = "Tamanho: 100px"
-        sliderLabel.TextColor3 = Color3.fromRGB(255, 180, 180)
+        sliderLabel.TextColor3 = Color3.fromRGB(255, 210, 210)
         sliderLabel.Font = Enum.Font.GothamBold
-        sliderLabel.TextSize = 13
+        sliderLabel.TextSize = 14
         sliderLabel.Parent = sizePanel
 
         local sliderBg = Instance.new("Frame")
         sliderBg.Size = UDim2.new(0.8, 0, 0, 8)
-        sliderBg.Position = UDim2.new(0.1, 0, 0.6, 0)
+        sliderBg.Position = UDim2.new(0.1, 0, 0.65, 0)
         sliderBg.BackgroundColor3 = Color3.fromRGB(35, 10, 10)
         sliderBg.BorderSizePixel = 0
         sliderBg.Parent = sizePanel
@@ -1432,8 +1406,8 @@ return function(env)
         sliderFill.Parent = sliderBg
 
         local sliderBtn = Instance.new("TextButton")
-        sliderBtn.Size = UDim2.new(0, 20, 0, 20)
-        sliderBtn.Position = UDim2.new(0.5, -10, 0.5, -10)
+        sliderBtn.Size = UDim2.new(0, 22, 0, 22)
+        sliderBtn.Position = UDim2.new(0.5, -11, 0.5, -11)
         sliderBtn.BackgroundColor3 = Color3.fromRGB(255, 220, 220)
         sliderBtn.Text = ""
         sliderBtn.Parent = sliderBg
@@ -1441,41 +1415,25 @@ return function(env)
         sliderBtnCorner.CornerRadius = UDim.new(1, 0)
         sliderBtnCorner.Parent = sliderBtn
 
-        local tempSettings = HttpService:JSONDecode(HttpService:JSONEncode(controlSettings))
-        
-        -- Garante que se o arquivo de configuração estiver vazio, usamos as posições reais da tela
-        local currentRealLayout = captureCurrentPositions()
-        for k, v in pairs(currentRealLayout) do
-            if not tempSettings[k] then
-                tempSettings[k] = v
-            end
-        end
-
         local activeProxy = nil
         local realBtns = getRealButtons()
+        local activeHandles = {}
 
         local function updateSlider(percent)
             percent = math.clamp(percent, 0, 1)
             sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            sliderBtn.Position = UDim2.new(percent, -10, 0.5, -10)
+            sliderBtn.Position = UDim2.new(percent, -11, 0.5, -11)
             
             if activeProxy then
+                local realButton = activeProxy.Parent
                 local key = activeProxy:GetAttribute("ControlKey")
                 local minSize, maxSize = 35, 150
                 if key == "Thumbstick" then minSize, maxSize = 60, 250 end
                 
                 local newSize = math.round(minSize + (maxSize - minSize) * percent)
-                tempSettings[key].Size = newSize
-                
-                -- Atualiza visualizador local do editor
-                activeProxy.Size = UDim2.fromOffset(newSize, newSize)
-                
-                -- Atualiza o botão REAL do Flee The Facility em tempo real!
-                local realBtn = realBtns[key]
-                if realBtn then
-                    realBtn.Size = UDim2.fromOffset(newSize, newSize)
+                if realButton then
+                    realButton.Size = UDim2.fromOffset(newSize, newSize)
                 end
-                
                 sliderLabel.Text = "Tamanho: " .. tostring(newSize) .. "px"
             end
         end
@@ -1498,131 +1456,122 @@ return function(env)
             end
         end)
 
-        -- Cria uma máscara invisível em cima do botão real que será usada de gatilho para arrastar
-        local function createDragMask(key)
-            local realButton = realBtns[key]
-            if not realButton then return nil end
+        -- Criar as alças de arraste de forma relativa como filhos dos botões reais do FTF
+        for key, realButton in pairs(realBtns) do
+            if realButton then
+                local old = realButton:FindFirstChild("FTF_DragHandle")
+                if old then old:Destroy() end
 
-            local config = tempSettings[key]
-            local mask = Instance.new("TextButton")
-            mask:SetAttribute("ControlKey", key)
-            mask.Text = "" -- Totalmente limpo sem alterar a UI do jogo por baixo
-            mask.BackgroundTransparency = 0.85 -- Sutil circulo de seleção
-            mask.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            mask.BorderSizePixel = 2
-            mask.BorderColor3 = Color3.fromRGB(255, 255, 255)
-            mask.AnchorPoint = Vector2.new(0.5, 0.5)
-            mask.Parent = bg
+                local handle = Instance.new("TextButton")
+                handle.Name = "FTF_DragHandle"
+                handle.Size = UDim2.new(1, 0, 1, 0)
+                handle.Position = UDim2.new(0, 0, 0, 0)
+                handle.BackgroundTransparency = 0.8
+                handle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                handle.BorderSizePixel = 2
+                handle.BorderColor3 = Color3.fromRGB(150, 150, 150)
+                handle.Active = true
+                handle.ZIndex = 100 -- Sobrepõe o botão nativo perfeitamente
+                handle.Text = ""
+                handle:SetAttribute("ControlKey", key)
+                handle.Parent = realButton
 
-            local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(1, 0)
-            corner.Parent = mask
+                local hCorner = Instance.new("UICorner")
+                hCorner.CornerRadius = UDim.new(1, 0)
+                hCorner.Parent = handle
 
-            -- Aplica e sincroniza com a posição real de fábrica
-            mask.Size = UDim2.fromOffset(config.Size, config.Size)
-            mask.Position = UDim2.new(config.X, 0, config.Y, 0)
+                table.insert(activeHandles, handle)
 
-            local dragging = false
-            local dragStart = nil
-            local startPos = nil
+                local dragging = false
+                local dragStart = nil
+                local startPos = nil
 
-            mask.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    dragging = true
-                    dragStart = input.Position
-                    startPos = mask.Position
+                handle.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                        dragStart = input.Position
+                        startPos = realButton.Position
 
-                    activeProxy = mask
-                    sizePanel.Visible = true
+                        activeProxy = handle
+                        sizePanel.Visible = true
 
-                    local minSize, maxSize = 35, 150
-                    if key == "Thumbstick" then minSize, maxSize = 60, 250 end
-                    local percent = (config.Size - minSize) / (maxSize - minSize)
-                    updateSlider(percent)
-
-                    for _, child in ipairs(bg:GetChildren()) do
-                        if child:IsA("TextButton") and child:GetAttribute("ControlKey") then
-                            child.BorderColor3 = Color3.fromRGB(150, 150, 150)
-                            child.BackgroundTransparency = 0.95
+                        -- Destaca com a borda azul exatamente como na imagem
+                        for _, h in ipairs(activeHandles) do
+                            h.BorderColor3 = Color3.fromRGB(150, 150, 150)
+                            h.BackgroundTransparency = 0.8
                         end
+                        handle.BorderColor3 = Color3.fromRGB(0, 162, 255)
+                        handle.BackgroundTransparency = 0.55
+
+                        local currentSize = realButton.Size.X.Offset
+                        local minSize, maxSize = 35, 150
+                        if key == "Thumbstick" then minSize, maxSize = 60, 250 end
+                        local percent = (currentSize - minSize) / (maxSize - minSize)
+                        updateSlider(percent)
                     end
-                    mask.BorderColor3 = Color3.fromRGB(255, 255, 0) -- Feedback de foco (Amarelo)
-                    mask.BackgroundTransparency = 0.75
-                end
-            end)
+                end)
 
-            mask.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    dragging = false
-                end
-            end)
+                handle.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
 
-            UserInputService.InputChanged:Connect(function(input)
-                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                    local delta = input.Position - dragStart
-                    local newX = math.clamp((startPos.X.Offset + delta.X) / bg.AbsoluteSize.X, 0.05, 0.95)
-                    local newY = math.clamp((startPos.Y.Offset + delta.Y) / bg.AbsoluteSize.Y, 0.05, 0.95)
-                    
-                    config.X = newX
-                    config.Y = newY
-                    mask.Position = UDim2.new(newX, 0, newY, 0)
-
-                    -- Move diretamente o botão REAL do Flee The Facility por baixo da máscara!
-                    pcall(function()
-                        if realButton.Parent then
-                            realButton.AnchorPoint = Vector2.new(0.5, 0.5)
-                            local absPos = Vector2.new(newX * bg.AbsoluteSize.X, newY * bg.AbsoluteSize.Y)
-                            local relX, relY = getRelativeCoordsOfParent(absPos, realButton.Parent)
-                            realButton.Position = UDim2.new(relX, 0, relY, 0)
-                        end
-                    end)
-                end
-            end)
-
-            return mask
+                UserInputService.InputChanged:Connect(function(input)
+                    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        local delta = input.Position - dragStart
+                        realButton.Position = UDim2.new(
+                            startPos.X.Scale,
+                            startPos.X.Offset + delta.X,
+                            startPos.Y.Scale,
+                            startPos.Y.Offset + delta.Y
+                        )
+                    end
+                end)
+            end
         end
 
-        local mThumb = createDragMask("Thumbstick")
-        local mJump = createDragMask("Jump")
-        local mE = createDragMask("E")
-        local mC = createDragMask("C")
-
         redefinirBtn.MouseButton1Click:Connect(function()
-            -- Captura novamente a base inicial do jogo
-            tempSettings = captureCurrentPositions()
-            for _, mask in ipairs({mThumb, mJump, mE, mC}) do
-                if mask then
-                    local key = mask:GetAttribute("ControlKey")
-                    local config = tempSettings[key]
-                    mask.Size = UDim2.fromOffset(config.Size, config.Size)
-                    mask.Position = UDim2.new(config.X, 0, config.Y, 0)
-                    
-                    -- Reseta o botão real nativo também
-                    local realBtn = realBtns[key]
-                    if realBtn and realBtn.Parent then
-                        realBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-                        local absPos = Vector2.new(config.X * bg.AbsoluteSize.X, config.Y * bg.AbsoluteSize.Y)
-                        local relX, relY = getRelativeCoordsOfParent(absPos, realBtn.Parent)
-                        realBtn.Position = UDim2.new(relX, 0, relY, 0)
-                        realBtn.Size = UDim2.fromOffset(config.Size, config.Size)
-                    end
+            for key, btn in pairs(realBtns) do
+                local original = originalLayouts[key]
+                if btn and original then
+                    btn.Position = original.Position
+                    btn.Size = original.Size
                 end
             end
             if activeProxy then
                 local key = activeProxy:GetAttribute("ControlKey")
-                local config = tempSettings[key]
+                local realBtn = realBtns[key]
                 local minSize, maxSize = 35, 150
                 if key == "Thumbstick" then minSize, maxSize = 60, 250 end
-                updateSlider((config.Size - minSize) / (maxSize - minSize))
+                if realBtn then
+                    updateSlider((realBtn.Size.X.Offset - minSize) / (maxSize - minSize))
+                end
             end
         end)
 
         salvarBtn.MouseButton1Click:Connect(function()
-            controlSettings = tempSettings
+            local newSettings = {}
+            for key, btn in pairs(realBtns) do
+                if btn then
+                    newSettings[key] = {
+                        XS = btn.Position.X.Scale,
+                        XO = btn.Position.X.Offset,
+                        YS = btn.Position.Y.Scale,
+                        YO = btn.Position.Y.Offset,
+                        Size = btn.Size.X.Offset
+                    }
+                end
+            end
+            controlSettings = newSettings
             saveControlSettings(controlSettings)
-            applyControlSettings()
+            
+            for _, h in ipairs(activeHandles) do
+                if h and h.Parent then h:Destroy() end
+            end
             screenGui:Destroy()
-            SendNotification("Configurações salvas permanentemente!", 3)
+            screenGuiActive = false
+            SendNotification("Controles salvos com sucesso!", 3)
         end)
     end
 
@@ -1705,7 +1654,7 @@ return function(env)
     end)
 
     Library:CreateToggle(Page, "Hide Buttons", false, function(state)
-        -- Implementações futuras para ocultar controles
+        -- Ocultação de botões futuros
     end)
 
     Library:CreateButton(Page, "Customize Controls", function()
@@ -1894,7 +1843,7 @@ return function(env)
         end
     end)
 
-    -- Sincroniza as posições mobile salvas na inicialização
+    -- Sincroniza posições carregadas na inicialização
     applyControlSettings()
 
     Library.CreateInput = originalCreateInput
