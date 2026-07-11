@@ -106,7 +106,6 @@ return function(env)
     local originalFonts = setmetatable({}, {__mode = "k"})
     local originalLayouts = {}
     local screenGuiActive = false
-    local backupCaptured = false
     
     local originalName = LocalPlayer.Name
     local originalDisplayName = LocalPlayer.DisplayName
@@ -1216,12 +1215,12 @@ return function(env)
     -- ==========================================
     local settingsFile = "FTF_MobileControls.json"
     
-    local defaultSettings = {
-        CustomControlsEnabled = false,
-        Thumbstick = { XS = nil, XO = nil, YS = nil, YO = nil, Size = nil },
-        Jump = { XS = nil, XO = nil, YS = nil, YO = nil, Size = nil },
-        E = { XS = nil, XO = nil, YS = nil, YO = nil, Size = nil },
-        C = { XS = nil, XO = nil, YS = nil, YO = nil, Size = nil }
+    -- Configuração nativa de fábrica do Roblox para dispositivos móveis
+    local robloxDefaults = {
+        Thumbstick = { XS = 0, XO = 15, YS = 1, YO = -135, Size = 120 },
+        Jump = { XS = 1, XO = -125, YS = 1, YO = -125, Size = 70 },
+        E = { XS = 1, XO = -200, YS = 1, YO = -100, Size = 55 },
+        C = { XS = 1, XO = -200, YS = 1, YO = -180, Size = 55 }
     }
 
     local function loadControlSettings()
@@ -1232,7 +1231,7 @@ return function(env)
                 loaded = HttpService:JSONDecode(raw)
             end
         end)
-        return loaded or HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
+        return loaded or { CustomControlsEnabled = false }
     end
 
     local controlSettings = loadControlSettings()
@@ -1281,16 +1280,14 @@ return function(env)
     end
 
     local function backupOriginalLayouts()
-        if backupCaptured then return end
         local realBtns = getRealButtons()
-        if realBtns.Jump and realBtns.Thumbstick and realBtns.E and realBtns.C then
-            for key, btn in pairs(realBtns) do
+        for key, btn in pairs(realBtns) do
+            if btn and not originalLayouts[key] then
                 originalLayouts[key] = {
                     Position = btn.Position,
                     Size = btn.Size
                 }
             end
-            backupCaptured = true
         end
     end
 
@@ -1300,6 +1297,7 @@ return function(env)
             local realBtns = getRealButtons()
             for key, btn in pairs(realBtns) do
                 local saved = controlSettings[key]
+                -- SÓ aplica as coordenadas se o botão realmente tiver sido salvo com dados válidos criados pelo usuário
                 if btn and saved and saved.XS then
                     btn.Position = UDim2.new(saved.XS, saved.XO, saved.YS, saved.YO)
                     btn.Size = UDim2.fromOffset(saved.Size, saved.Size)
@@ -1308,25 +1306,21 @@ return function(env)
         end)
     end
 
-    -- Sincronização constante corrigida (Garante restauração e backup perfeitos)
+    -- Sincronização em background: força o padrão se desligado ou aplica o layout customizado se ativo
     task.spawn(function()
         while true do
-            task.wait(0.5)
-            if not backupCaptured then
-                backupOriginalLayouts()
-            end
-            
-            if not screenGuiActive and backupCaptured then
+            task.wait(1.0)
+            if not screenGuiActive then
                 if controlSettings and controlSettings.CustomControlsEnabled then
                     applyControlSettings()
                 else
                     pcall(function()
                         local realBtns = getRealButtons()
                         for key, btn in pairs(realBtns) do
-                            local original = originalLayouts[key]
-                            if btn and original then
-                                btn.Position = original.Position
-                                btn.Size = original.Size
+                            local default = robloxDefaults[key]
+                            if btn and default then
+                                btn.Position = UDim2.new(default.XS, default.XO, default.YS, default.YO)
+                                btn.Size = UDim2.fromOffset(default.Size, default.Size)
                             end
                         end
                     end)
@@ -1347,30 +1341,29 @@ return function(env)
 
         local bg = Instance.new("Frame")
         bg.Size = UDim2.new(1, 0, 1, 0)
-        bg.BackgroundColor3 = Color3.fromRGB(15, 12, 12)
-        bg.BackgroundTransparency = 0.55
+        bg.BackgroundTransparency = 1 -- Totalmente transparente, sem fundo poluente
         bg.BorderSizePixel = 0
         bg.Parent = screenGui
 
-        -- Painel Único Compacto Flutuante (Estilo Brawl Stars)
+        -- Painel de controle compacto centralizado e suspenso (Livre de colisões)
         local controlPanel = Instance.new("Frame")
-        controlPanel.Size = UDim2.new(0, 320, 0, 140)
-        controlPanel.Position = UDim2.new(0.5, -160, 0, 55)
-        controlPanel.BackgroundColor3 = Color3.fromRGB(40, 32, 48) -- Roxo profundo clássico
+        controlPanel.Size = UDim2.new(0, 310, 0, 135)
+        controlPanel.Position = UDim2.new(0.5, -155, 0, 60) -- Altura perfeita e livre do Menu Roblox
+        controlPanel.BackgroundColor3 = Color3.fromRGB(35, 25, 42) -- Plum profundo Brawl Stars
         controlPanel.BackgroundTransparency = 0.15
         controlPanel.BorderSizePixel = 2
-        controlPanel.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        controlPanel.BorderColor3 = Color3.fromRGB(255, 255, 255) -- Borda branca fina e nítida
         controlPanel.Parent = bg
 
         local panelCorner = Instance.new("UICorner")
-        panelCorner.CornerRadius = UDim.new(0, 12)
+        panelCorner.CornerRadius = UDim.new(0, 10)
         panelCorner.Parent = controlPanel
 
         -- Botão Redefinir
         local redefinirBtn = Instance.new("TextButton")
-        redefinirBtn.Size = UDim2.new(0, 135, 0, 35)
+        redefinirBtn.Size = UDim2.new(0, 130, 0, 32)
         redefinirBtn.Position = UDim2.new(0, 15, 0, 15)
-        redefinirBtn.BackgroundColor3 = Color3.fromRGB(60, 50, 70)
+        redefinirBtn.BackgroundColor3 = Color3.fromRGB(55, 42, 62)
         redefinirBtn.BorderSizePixel = 2
         redefinirBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
         redefinirBtn.Text = "Redefinir"
@@ -1379,14 +1372,14 @@ return function(env)
         redefinirBtn.TextSize = 13
         redefinirBtn.Parent = controlPanel
         local cornerR = Instance.new("UICorner")
-        cornerR.CornerRadius = UDim.new(0, 6)
+        cornerR.CornerRadius = UDim.new(0, 5)
         cornerR.Parent = redefinirBtn
 
         -- Botão Salvar
         local salvarBtn = Instance.new("TextButton")
-        salvarBtn.Size = UDim2.new(0, 135, 0, 35)
-        salvarBtn.Position = UDim2.new(1, -150, 0, 15)
-        salvarBtn.BackgroundColor3 = Color3.fromRGB(60, 50, 70)
+        salvarBtn.Size = UDim2.new(0, 130, 0, 32)
+        salvarBtn.Position = UDim2.new(1, -145, 0, 15)
+        salvarBtn.BackgroundColor3 = Color3.fromRGB(55, 42, 62)
         salvarBtn.BorderSizePixel = 2
         salvarBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
         salvarBtn.Text = "Salvar"
@@ -1395,25 +1388,25 @@ return function(env)
         salvarBtn.TextSize = 13
         salvarBtn.Parent = controlPanel
         local cornerS = Instance.new("UICorner")
-        cornerS.CornerRadius = UDim.new(0, 6)
+        cornerS.CornerRadius = UDim.new(0, 5)
         cornerS.Parent = salvarBtn
 
-        -- Texto TAMANHO
+        -- Label TAMANHO
         local sliderLabel = Instance.new("TextLabel")
-        sliderLabel.Size = UDim2.new(1, 0, 0, 25)
-        sliderLabel.Position = UDim2.new(0, 0, 0, 60)
+        sliderLabel.Size = UDim2.new(1, 0, 0, 20)
+        sliderLabel.Position = UDim2.new(0, 0, 0, 58)
         sliderLabel.BackgroundTransparency = 1
         sliderLabel.Text = "TAMANHO"
         sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         sliderLabel.Font = Enum.Font.GothamBold
-        sliderLabel.TextSize = 12
+        sliderLabel.TextSize = 11
         sliderLabel.Parent = controlPanel
 
-        -- Pista do Slider de Tamanho
+        -- Pista do Slider (Borda branca, trilha escura)
         local sliderBg = Instance.new("Frame")
-        sliderBg.Size = UDim2.new(0.9, 0, 0, 12)
-        sliderBg.Position = UDim2.new(0.05, 0, 0, 95)
-        sliderBg.BackgroundColor3 = Color3.fromRGB(55, 45, 65)
+        sliderBg.Size = UDim2.new(0.9, 0, 0, 10)
+        sliderBg.Position = UDim2.new(0.05, 0, 0, 92)
+        sliderBg.BackgroundColor3 = Color3.fromRGB(50, 40, 58)
         sliderBg.BorderSizePixel = 2
         sliderBg.BorderColor3 = Color3.fromRGB(255, 255, 255)
         sliderBg.Parent = controlPanel
@@ -1423,17 +1416,17 @@ return function(env)
 
         local sliderFill = Instance.new("Frame")
         sliderFill.Size = UDim2.new(0.5, 0, 1, 0)
-        sliderFill.BackgroundColor3 = Color3.fromRGB(115, 95, 130)
+        sliderFill.BackgroundColor3 = Color3.fromRGB(110, 90, 125)
         sliderFill.BorderSizePixel = 0
         sliderFill.Parent = sliderBg
         local fillCorner = Instance.new("UICorner")
         fillCorner.CornerRadius = UDim.new(1, 0)
         fillCorner.Parent = sliderFill
 
-        -- Knob Redondo Branco com Borda Preta
+        -- Knob Redondo Branco com Borda Preta do Brawl Stars
         local sliderBtn = Instance.new("TextButton")
-        sliderBtn.Size = UDim2.new(0, 26, 0, 24)
-        sliderBtn.Position = UDim2.new(0.5, -13, 0.5, -12)
+        sliderBtn.Size = UDim2.new(0, 24, 0, 24)
+        sliderBtn.Position = UDim2.new(0.5, -12, 0.5, -12)
         sliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         sliderBtn.BorderSizePixel = 2
         sliderBtn.BorderColor3 = Color3.fromRGB(30, 30, 30)
@@ -1443,6 +1436,24 @@ return function(env)
         sliderBtnCorner.CornerRadius = UDim.new(1, 0)
         sliderBtnCorner.Parent = sliderBtn
 
+        -- Botão Sair "Exit" (No centro inferior, totalmente fora do caminho)
+        local exitBtn = Instance.new("TextButton")
+        exitBtn.Size = UDim2.new(0, 110, 0, 30)
+        exitBtn.Position = UDim2.new(0.5, -55, 1, -55)
+        exitBtn.BackgroundColor3 = Color3.fromRGB(30, 25, 35)
+        exitBtn.BackgroundTransparency = 0.2
+        exitBtn.BorderSizePixel = 2
+        exitBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        exitBtn.Text = "Exit"
+        exitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        exitBtn.Font = Enum.Font.GothamBold
+        exitBtn.TextSize = 13
+        exitBtn.ZIndex = 10
+        exitBtn.Parent = bg
+        local exitCorner = Instance.new("UICorner")
+        exitCorner.CornerRadius = UDim.new(0, 6)
+        exitCorner.Parent = exitBtn
+
         local activeProxy = nil
         local realBtns = getRealButtons()
         local activeHandles = {}
@@ -1450,7 +1461,7 @@ return function(env)
         local function updateSlider(percent)
             percent = math.clamp(percent, 0, 1)
             sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            sliderBtn.Position = UDim2.new(percent, -13, 0.5, -12)
+            sliderBtn.Position = UDim2.new(percent, -12, 0.5, -12)
             
             if activeProxy then
                 local realButton = activeProxy.Parent
@@ -1495,7 +1506,7 @@ return function(env)
                 handle.Name = "FTF_DragHandle"
                 handle.Size = UDim2.new(1, 0, 1, 0)
                 handle.Position = UDim2.new(0, 0, 0, 0)
-                handle.BackgroundTransparency = 1
+                handle.BackgroundTransparency = 1 -- 100% invisível por padrão
                 handle.BorderSizePixel = 3
                 handle.BorderColor3 = Color3.fromRGB(150, 150, 150)
                 handle.Active = true
@@ -1521,13 +1532,14 @@ return function(env)
                         startPos = realButton.Position
 
                         activeProxy = handle
+                        sizePanel.Visible = true
 
-                        -- Borda fina verde neon de seleção
+                        -- Borda verde neon Brawl Stars ativa no botão selecionado
                         for _, h in ipairs(activeHandles) do
                             h.BorderColor3 = Color3.fromRGB(150, 150, 150)
                             h.BackgroundTransparency = 1
                         end
-                        handle.BorderColor3 = Color3.fromRGB(0, 255, 120) -- Verde Brawl Stars
+                        handle.BorderColor3 = Color3.fromRGB(0, 255, 120) -- Borda verde pura
                         handle.BackgroundTransparency = 0.97
 
                         local currentSize = realButton.Size.X.Offset
@@ -1559,11 +1571,12 @@ return function(env)
         end
 
         redefinirBtn.MouseButton1Click:Connect(function()
+            -- Força a restauração para os padrões originais de fábrica do Roblox
             for key, btn in pairs(realBtns) do
-                local original = originalLayouts[key]
-                if btn and original then
-                    btn.Position = original.Position
-                    btn.Size = original.Size
+                local default = robloxDefaults[key]
+                if btn and default then
+                    btn.Position = UDim2.new(default.XS, default.XO, default.YS, default.YO)
+                    btn.Size = UDim2.fromOffset(default.Size, default.Size)
                 end
             end
             if activeProxy then
@@ -1575,6 +1588,17 @@ return function(env)
                     updateSlider((realBtn.Size.X.Offset - minSize) / (maxSize - minSize))
                 end
             end
+        end)
+
+        -- Fechar SEM salvar nenhuma modificação, desfazendo o arraste em tempo real
+        exitBtn.MouseButton1Click:Connect(function()
+            applyControlSettings() -- Reaplica as configurações salvas antes da edição
+            for _, h in ipairs(activeHandles) do
+                if h and h.Parent then h:Destroy() end
+            end
+            screenGui:Destroy()
+            screenGuiActive = false
+            SendNotification("Edição cancelada. Nenhuma alteração foi salva.", 3)
         end)
 
         salvarBtn.MouseButton1Click:Connect(function()
@@ -1686,7 +1710,7 @@ return function(env)
         -- Ocultação de botões futura
     end)
 
-    -- Sincroniza a ativação funcional em tempo real e reverte ao original quando desativada
+    -- Sincroniza a ativação funcional em tempo real e reverte ao padrão quando desativada
     Library:CreateToggle(Page, "Enable Custom Controls", controlSettings.CustomControlsEnabled or false, function(state)
         controlSettings.CustomControlsEnabled = state
         saveControlSettings(controlSettings)
@@ -1696,10 +1720,10 @@ return function(env)
             pcall(function()
                 local realBtns = getRealButtons()
                 for key, btn in pairs(realBtns) do
-                    local original = originalLayouts[key]
-                    if btn and original then
-                        btn.Position = original.Position
-                        btn.Size = original.Size
+                    local default = robloxDefaults[key]
+                    if btn and default then
+                        btn.Position = UDim2.new(default.XS, default.XO, default.YS, default.YO)
+                        btn.Size = UDim2.fromOffset(default.Size, default.Size)
                     end
                 end
             end)
@@ -1897,7 +1921,7 @@ return function(env)
         end
     end)
 
-    -- Salva e aplica os layouts padrões, mantendo a integridade se desativado
+    -- Captura os layouts iniciais do jogador para o primeiro backup
     backupOriginalLayouts()
     applyControlSettings()
 
