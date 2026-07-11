@@ -106,6 +106,7 @@ return function(env)
     local originalFonts = setmetatable({}, {__mode = "k"})
     local originalLayouts = {}
     local screenGuiActive = false
+    local backupCaptured = false
     
     local originalName = LocalPlayer.Name
     local originalDisplayName = LocalPlayer.DisplayName
@@ -1280,14 +1281,16 @@ return function(env)
     end
 
     local function backupOriginalLayouts()
+        if backupCaptured then return end
         local realBtns = getRealButtons()
-        for key, btn in pairs(realBtns) do
-            if btn and not originalLayouts[key] then
+        if realBtns.Jump and realBtns.Thumbstick and realBtns.E and realBtns.C then
+            for key, btn in pairs(realBtns) do
                 originalLayouts[key] = {
                     Position = btn.Position,
                     Size = btn.Size
                 }
             end
+            backupCaptured = true
         end
     end
 
@@ -1297,7 +1300,6 @@ return function(env)
             local realBtns = getRealButtons()
             for key, btn in pairs(realBtns) do
                 local saved = controlSettings[key]
-                -- SÓ aplica as coordenadas se o botão realmente tiver sido salvo com dados válidos
                 if btn and saved and saved.XS then
                     btn.Position = UDim2.new(saved.XS, saved.XO, saved.YS, saved.YO)
                     btn.Size = UDim2.fromOffset(saved.Size, saved.Size)
@@ -1306,11 +1308,15 @@ return function(env)
         end)
     end
 
-    -- Sincronização constante que garante que as posições originais retornem se a toggle for desligada
+    -- Sincronização constante corrigida (Garante restauração e backup perfeitos)
     task.spawn(function()
         while true do
-            task.wait(1.0)
-            if not screenGuiActive then
+            task.wait(0.5)
+            if not backupCaptured then
+                backupOriginalLayouts()
+            end
+            
+            if not screenGuiActive and backupCaptured then
                 if controlSettings and controlSettings.CustomControlsEnabled then
                     applyControlSettings()
                 else
@@ -1341,19 +1347,19 @@ return function(env)
 
         local bg = Instance.new("Frame")
         bg.Size = UDim2.new(1, 0, 1, 0)
-        bg.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+        bg.BackgroundColor3 = Color3.fromRGB(15, 12, 12)
         bg.BackgroundTransparency = 0.55
         bg.BorderSizePixel = 0
         bg.Parent = screenGui
 
-        -- Painel Único Consolidado Centralizado (Estilo Brawl Stars)
+        -- Painel Único Compacto Flutuante (Estilo Brawl Stars)
         local controlPanel = Instance.new("Frame")
         controlPanel.Size = UDim2.new(0, 320, 0, 140)
-        controlPanel.Position = UDim2.new(0.5, -160, 0, 55) -- Livre de colisão com barra do Roblox
-        controlPanel.BackgroundColor3 = Color3.fromRGB(40, 32, 48) -- Tom roxo/plum profundo do Brawl Stars
+        controlPanel.Position = UDim2.new(0.5, -160, 0, 55)
+        controlPanel.BackgroundColor3 = Color3.fromRGB(40, 32, 48) -- Roxo profundo clássico
         controlPanel.BackgroundTransparency = 0.15
         controlPanel.BorderSizePixel = 2
-        controlPanel.BorderColor3 = Color3.fromRGB(255, 255, 255) -- Borda branca limpa
+        controlPanel.BorderColor3 = Color3.fromRGB(255, 255, 255)
         controlPanel.Parent = bg
 
         local panelCorner = Instance.new("UICorner")
@@ -1594,7 +1600,7 @@ return function(env)
             end
             screenGui:Destroy()
             screenGuiActive = false
-            SendNotification("Controles salvos com sucesso!", 3)
+            SendNotification("Controles customizados salvos com sucesso!", 3)
         end)
     end
 
