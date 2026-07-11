@@ -1209,7 +1209,7 @@ return function(env)
     end
 
     -- ==========================================
-    -- SISTEMA DE CUSTOMIZAÇÃO DE CONTROLES
+    -- SISTEMA DE CONFIGURAÇÃO DE CONTROLES REAIS
     -- ==========================================
     local settingsFile = "FTF_MobileControls.json"
     local defaultSettings = {
@@ -1264,40 +1264,46 @@ return function(env)
         return getButtonByText("C") or getButtonByText("Q")
     end
 
+    local function getRealButtons()
+        local touchGui = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("TouchGui")
+        local touchFrame = touchGui and touchGui:FindFirstChild("TouchControlFrame")
+        return {
+            Thumbstick = touchFrame and (touchFrame:FindFirstChild("ThumbstickFrame") or touchFrame:FindFirstChild("DynamicThumbstickFrame")),
+            Jump = touchFrame and touchFrame:FindFirstChild("JumpButton"),
+            E = getButtonByText("E"),
+            C = getCOrQButton()
+        }
+    end
+
+    local function getRelativeCoordsOfParent(absPos, parent)
+        if not parent then return 0, 0 end
+        local parentPos = parent.AbsolutePosition
+        local parentSize = parent.AbsoluteSize
+        local relX = (absPos.X - parentPos.X) / parentSize.X
+        local relY = (absPos.Y - parentPos.Y) / parentSize.Y
+        return relX, relY
+    end
+
     local function applyControlSettings()
         pcall(function()
-            local touchGui = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("TouchGui")
-            local touchFrame = touchGui and touchGui:FindFirstChild("TouchControlFrame")
-            if not touchFrame then return end
-
-            local realJump = touchFrame:FindFirstChild("JumpButton")
-            local realThumb = touchFrame:FindFirstChild("ThumbstickFrame") or touchFrame:FindFirstChild("DynamicThumbstickFrame")
-
-            if realJump and controlSettings.Jump then
-                realJump.Position = UDim2.new(controlSettings.Jump.X, -controlSettings.Jump.Size/2, controlSettings.Jump.Y, -controlSettings.Jump.Size/2)
-                realJump.Size = UDim2.new(0, controlSettings.Jump.Size, 0, controlSettings.Jump.Size)
-            end
-
-            if realThumb and controlSettings.Thumbstick then
-                realThumb.Position = UDim2.new(controlSettings.Thumbstick.X, -controlSettings.Thumbstick.Size/2, controlSettings.Thumbstick.Y, -controlSettings.Thumbstick.Size/2)
-                realThumb.Size = UDim2.new(0, controlSettings.Thumbstick.Size, 0, controlSettings.Thumbstick.Size)
-            end
-
-            local realE = getButtonByText("E")
-            if realE and controlSettings.E then
-                realE.Position = UDim2.new(controlSettings.E.X, -controlSettings.E.Size/2, controlSettings.E.Y, -controlSettings.E.Size/2)
-                realE.Size = UDim2.new(0, controlSettings.E.Size, 0, controlSettings.E.Size)
-            end
-
-            local realC = getCOrQButton()
-            if realC and controlSettings.C then
-                realC.Position = UDim2.new(controlSettings.C.X, -controlSettings.C.Size/2, controlSettings.C.Y, -controlSettings.C.Size/2)
-                realC.Size = UDim2.new(0, controlSettings.C.Size, 0, controlSettings.C.Size)
+            local camera = workspace.CurrentCamera
+            local screenWidth = camera and camera.ViewportSize.X or 1000
+            local screenHeight = camera and camera.ViewportSize.Y or 600
+            local realBtns = getRealButtons()
+            
+            for key, realButton in pairs(realBtns) do
+                local config = controlSettings[key]
+                if realButton and config and realButton.Parent then
+                    realButton.AnchorPoint = Vector2.new(0.5, 0.5)
+                    local absPos = Vector2.new(config.X * screenWidth, config.Y * screenHeight)
+                    local relX, relY = getRelativeCoordsOfParent(absPos, realButton.Parent)
+                    realButton.Position = UDim2.new(relX, 0, relY, 0)
+                    realButton.Size = UDim2.fromOffset(config.Size, config.Size)
+                end
             end
         end)
     end
 
-    -- Sincronização constante para evitar resets involuntários do jogo
     task.spawn(function()
         while true do
             task.wait(1.5)
@@ -1305,12 +1311,13 @@ return function(env)
         end
     end)
 
+    -- Detecta e captura as coordenadas 1:1 iniciais da UI nativa do jogo no frame atual
     local function captureCurrentPositions()
         local camera = workspace.CurrentCamera
         local screenWidth = camera and camera.ViewportSize.X or 1000
         local screenHeight = camera and camera.ViewportSize.Y or 600
         
-        local function getRelativeCoords(btn)
+        local function getAbsoluteCenterScale(btn)
             if not btn or not btn:IsA("GuiObject") then return nil end
             local absPos = btn.AbsolutePosition
             local absSize = btn.AbsoluteSize
@@ -1322,28 +1329,12 @@ return function(env)
         end
 
         local currentSetup = HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
+        local realBtns = getRealButtons()
 
-        local touchGui = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("TouchGui")
-        local touchFrame = touchGui and touchGui:FindFirstChild("TouchControlFrame")
-        
-        if touchFrame then
-            local realJump = touchFrame:FindFirstChild("JumpButton")
-            local realThumb = touchFrame:FindFirstChild("ThumbstickFrame") or touchFrame:FindFirstChild("DynamicThumbstickFrame")
-            
-            local coordsJump = getRelativeCoords(realJump)
-            if coordsJump then currentSetup.Jump = coordsJump end
-            
-            local coordsThumb = getRelativeCoords(realThumb)
-            if coordsThumb then currentSetup.Thumbstick = coordsThumb end
+        for key, btn in pairs(realBtns) do
+            local coords = getAbsoluteCenterScale(btn)
+            if coords then currentSetup[key] = coords end
         end
-
-        local realE = getButtonByText("E")
-        local coordsE = getRelativeCoords(realE)
-        if coordsE then currentSetup.E = coordsE end
-
-        local realC = getCOrQButton()
-        local coordsC = getRelativeCoords(realC)
-        if coordsC then currentSetup.C = coordsC end
 
         return currentSetup
     end
@@ -1351,6 +1342,7 @@ return function(env)
     local function openControlEditor()
         local screenGui = Instance.new("ScreenGui")
         screenGui.Name = "FTF_EditorDeControles"
+        screenGui.IgnoreGuiInset = true -- Crucial para o alinhamento absoluto 1:1
         screenGui.ResetOnSpawn = false
         screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -1450,14 +1442,17 @@ return function(env)
         sliderBtnCorner.Parent = sliderBtn
 
         local tempSettings = HttpService:JSONDecode(HttpService:JSONEncode(controlSettings))
-        local captured = captureCurrentPositions()
-        for k, v in pairs(captured) do
-            if tempSettings[k] == nil then
+        
+        -- Garante que se o arquivo de configuração estiver vazio, usamos as posições reais da tela
+        local currentRealLayout = captureCurrentPositions()
+        for k, v in pairs(currentRealLayout) do
+            if not tempSettings[k] then
                 tempSettings[k] = v
             end
         end
 
         local activeProxy = nil
+        local realBtns = getRealButtons()
 
         local function updateSlider(percent)
             percent = math.clamp(percent, 0, 1)
@@ -1471,8 +1466,16 @@ return function(env)
                 
                 local newSize = math.round(minSize + (maxSize - minSize) * percent)
                 tempSettings[key].Size = newSize
-                activeProxy.Size = UDim2.new(0, newSize, 0, newSize)
-                activeProxy.Position = UDim2.new(tempSettings[key].X, -newSize/2, tempSettings[key].Y, -newSize/2)
+                
+                -- Atualiza visualizador local do editor
+                activeProxy.Size = UDim2.fromOffset(newSize, newSize)
+                
+                -- Atualiza o botão REAL do Flee The Facility em tempo real!
+                local realBtn = realBtns[key]
+                if realBtn then
+                    realBtn.Size = UDim2.fromOffset(newSize, newSize)
+                end
+                
                 sliderLabel.Text = "Tamanho: " .. tostring(newSize) .. "px"
             end
         end
@@ -1495,38 +1498,41 @@ return function(env)
             end
         end)
 
-        local function createProxy(key, label, color)
-            local proxy = Instance.new("TextButton")
-            proxy:SetAttribute("ControlKey", key)
-            proxy.Text = label
-            proxy.Font = Enum.Font.GothamBold
-            proxy.TextColor3 = Color3.fromRGB(255, 255, 255)
-            proxy.TextSize = 14
-            proxy.BackgroundColor3 = color
-            proxy.BackgroundTransparency = 0.25
-            proxy.BorderSizePixel = 2
-            proxy.BorderColor3 = Color3.fromRGB(150, 150, 150)
-            proxy.Parent = bg
+        -- Cria uma máscara invisível em cima do botão real que será usada de gatilho para arrastar
+        local function createDragMask(key)
+            local realButton = realBtns[key]
+            if not realButton then return nil end
+
+            local config = tempSettings[key]
+            local mask = Instance.new("TextButton")
+            mask:SetAttribute("ControlKey", key)
+            mask.Text = "" -- Totalmente limpo sem alterar a UI do jogo por baixo
+            mask.BackgroundTransparency = 0.85 -- Sutil circulo de seleção
+            mask.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            mask.BorderSizePixel = 2
+            mask.BorderColor3 = Color3.fromRGB(255, 255, 255)
+            mask.AnchorPoint = Vector2.new(0.5, 0.5)
+            mask.Parent = bg
 
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(1, 0)
-            corner.Parent = proxy
+            corner.Parent = mask
 
-            local config = tempSettings[key]
-            proxy.Size = UDim2.new(0, config.Size, 0, config.Size)
-            proxy.Position = UDim2.new(config.X, -config.Size/2, config.Y, -config.Size/2)
+            -- Aplica e sincroniza com a posição real de fábrica
+            mask.Size = UDim2.fromOffset(config.Size, config.Size)
+            mask.Position = UDim2.new(config.X, 0, config.Y, 0)
 
             local dragging = false
             local dragStart = nil
             local startPos = nil
 
-            proxy.InputBegan:Connect(function(input)
+            mask.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = true
                     dragStart = input.Position
-                    startPos = proxy.Position
+                    startPos = mask.Position
 
-                    activeProxy = proxy
+                    activeProxy = mask
                     sizePanel.Visible = true
 
                     local minSize, maxSize = 35, 150
@@ -1537,15 +1543,15 @@ return function(env)
                     for _, child in ipairs(bg:GetChildren()) do
                         if child:IsA("TextButton") and child:GetAttribute("ControlKey") then
                             child.BorderColor3 = Color3.fromRGB(150, 150, 150)
-                            child.BackgroundTransparency = 0.4
+                            child.BackgroundTransparency = 0.95
                         end
                     end
-                    proxy.BorderColor3 = Color3.fromRGB(255, 255, 0)
-                    proxy.BackgroundTransparency = 0.1
+                    mask.BorderColor3 = Color3.fromRGB(255, 255, 0) -- Feedback de foco (Amarelo)
+                    mask.BackgroundTransparency = 0.75
                 end
             end)
 
-            proxy.InputEnded:Connect(function(input)
+            mask.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = false
                 end
@@ -1554,30 +1560,53 @@ return function(env)
             UserInputService.InputChanged:Connect(function(input)
                 if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                     local delta = input.Position - dragStart
-                    local newX = math.clamp((startPos.X.Offset + delta.X + proxy.Size.X.Offset/2) / bg.AbsoluteSize.X, 0.05, 0.95)
-                    local newY = math.clamp((startPos.Y.Offset + delta.Y + proxy.Size.Y.Offset/2) / bg.AbsoluteSize.Y, 0.05, 0.95)
+                    local newX = math.clamp((startPos.X.Offset + delta.X) / bg.AbsoluteSize.X, 0.05, 0.95)
+                    local newY = math.clamp((startPos.Y.Offset + delta.Y) / bg.AbsoluteSize.Y, 0.05, 0.95)
                     
                     config.X = newX
                     config.Y = newY
-                    proxy.Position = UDim2.new(newX, -proxy.Size.X.Offset/2, newY, -proxy.Size.Y.Offset/2)
+                    mask.Position = UDim2.new(newX, 0, newY, 0)
+
+                    -- Move diretamente o botão REAL do Flee The Facility por baixo da máscara!
+                    pcall(function()
+                        if realButton.Parent then
+                            realButton.AnchorPoint = Vector2.new(0.5, 0.5)
+                            local absPos = Vector2.new(newX * bg.AbsoluteSize.X, newY * bg.AbsoluteSize.Y)
+                            local relX, relY = getRelativeCoordsOfParent(absPos, realButton.Parent)
+                            realButton.Position = UDim2.new(relX, 0, relY, 0)
+                        end
+                    end)
                 end
             end)
 
-            return proxy
+            return mask
         end
 
-        local pThumb = createProxy("Thumbstick", "Movimento", Color3.fromRGB(45, 45, 45))
-        local pJump = createProxy("Jump", "Pulo", Color3.fromRGB(120, 20, 20))
-        local pE = createProxy("E", "E (Ação)", Color3.fromRGB(20, 110, 20))
-        local pC = createProxy("C", "C / Q", Color3.fromRGB(20, 20, 110))
+        local mThumb = createDragMask("Thumbstick")
+        local mJump = createDragMask("Jump")
+        local mE = createDragMask("E")
+        local mC = createDragMask("C")
 
         redefinirBtn.MouseButton1Click:Connect(function()
-            tempSettings = HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
-            for _, proxy in ipairs({pThumb, pJump, pE, pC}) do
-                local key = proxy:GetAttribute("ControlKey")
-                local config = tempSettings[key]
-                proxy.Size = UDim2.new(0, config.Size, 0, config.Size)
-                proxy.Position = UDim2.new(config.X, -config.Size/2, config.Y, -config.Size/2)
+            -- Captura novamente a base inicial do jogo
+            tempSettings = captureCurrentPositions()
+            for _, mask in ipairs({mThumb, mJump, mE, mC}) do
+                if mask then
+                    local key = mask:GetAttribute("ControlKey")
+                    local config = tempSettings[key]
+                    mask.Size = UDim2.fromOffset(config.Size, config.Size)
+                    mask.Position = UDim2.new(config.X, 0, config.Y, 0)
+                    
+                    -- Reseta o botão real nativo também
+                    local realBtn = realBtns[key]
+                    if realBtn and realBtn.Parent then
+                        realBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+                        local absPos = Vector2.new(config.X * bg.AbsoluteSize.X, config.Y * bg.AbsoluteSize.Y)
+                        local relX, relY = getRelativeCoordsOfParent(absPos, realBtn.Parent)
+                        realBtn.Position = UDim2.new(relX, 0, relY, 0)
+                        realBtn.Size = UDim2.fromOffset(config.Size, config.Size)
+                    end
+                end
             end
             if activeProxy then
                 local key = activeProxy:GetAttribute("ControlKey")
@@ -1593,7 +1622,7 @@ return function(env)
             saveControlSettings(controlSettings)
             applyControlSettings()
             screenGui:Destroy()
-            SendNotification("Configurações salvas!", 3)
+            SendNotification("Configurações salvas permanentemente!", 3)
         end)
     end
 
@@ -1865,7 +1894,7 @@ return function(env)
         end
     end)
 
-    -- Aplicar configurações de posições mobile carregadas na inicialização
+    -- Sincroniza as posições mobile salvas na inicialização
     applyControlSettings()
 
     Library.CreateInput = originalCreateInput
