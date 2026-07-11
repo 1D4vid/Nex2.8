@@ -1214,12 +1214,13 @@ return function(env)
     -- SISTEMA DE CONFIGURAÇÃO DE CONTROLES REAIS
     -- ==========================================
     local settingsFile = "FTF_MobileControls.json"
+    
     local defaultSettings = {
         CustomControlsEnabled = false,
-        Thumbstick = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 120 },
-        Jump = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 70 },
-        E = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 55 },
-        C = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 55 }
+        Thumbstick = { XS = 0, XO = 50, YS = 1, YO = -200, Size = 120 },
+        Jump = { XS = 1, XO = -120, YS = 1, YO = -120, Size = 70 },
+        E = { XS = 1, XO = -200, YS = 1, YO = -100, Size = 55 },
+        C = { XS = 1, XO = -200, YS = 1, YO = -180, Size = 55 }
     }
 
     local function loadControlSettings()
@@ -1304,16 +1305,37 @@ return function(env)
         end)
     end
 
+    -- Sincronização constante com loop de segurança (Ativa/Restaura dependendo da toggle)
     task.spawn(function()
         while true do
-            task.wait(1.5)
-            if not screenGuiActive and controlSettings and controlSettings.CustomControlsEnabled then
-                applyControlSettings()
+            task.wait(1.0)
+            if not screenGuiActive then
+                if controlSettings and controlSettings.CustomControlsEnabled then
+                    applyControlSettings()
+                else
+                    pcall(function()
+                        local realBtns = getRealButtons()
+                        for key, btn in pairs(realBtns) do
+                            local original = originalLayouts[key] or defaultSettings[key]
+                            if btn and original then
+                                btn.Position = original.Position or UDim2.new(original.XS, original.XO, original.YS, original.YO)
+                                btn.Size = original.Size or UDim2.fromOffset(original.Size, original.Size)
+                            end
+                        end
+                    end)
+                end
             end
         end
     end)
 
     local function openControlEditor()
+        -- Ativa automaticamente a toggle se o jogador clicar para customizar
+        if not controlSettings.CustomControlsEnabled then
+            controlSettings.CustomControlsEnabled = true
+            saveControlSettings(controlSettings)
+            SendNotification("Ativando 'Custom Controls' para edição...", 3)
+        end
+
         screenGuiActive = true
         backupOriginalLayouts()
 
@@ -1325,79 +1347,96 @@ return function(env)
 
         local bg = Instance.new("Frame")
         bg.Size = UDim2.new(1, 0, 1, 0)
-        bg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        bg.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
         bg.BackgroundTransparency = 0.5
         bg.BorderSizePixel = 0
         bg.Parent = screenGui
 
-        -- Barra Superior com Estilo Limpo
+        -- Barra Superior Ultramoderna Fina (Estilo Brawl Stars)
         local topBar = Instance.new("Frame")
-        topBar.Size = UDim2.new(1, 0, 0, 80)
-        topBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        topBar.BackgroundTransparency = 0.15
+        topBar.Size = UDim2.new(1, 0, 0, 50)
+        topBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+        topBar.BackgroundTransparency = 0.3
         topBar.BorderSizePixel = 0
         topBar.Parent = bg
 
+        local border = Instance.new("Frame")
+        border.Size = UDim2.new(1, 0, 0, 1)
+        border.Position = UDim2.new(0, 0, 1, -1)
+        border.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        border.BorderSizePixel = 0
+        border.Parent = topBar
+
         local redefinirBtn = Instance.new("TextButton")
-        redefinirBtn.Size = UDim2.new(0, 110, 0, 36)
-        redefinirBtn.Position = UDim2.new(0, 20, 0.5, -18)
-        redefinirBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        redefinirBtn.Size = UDim2.new(0, 100, 0, 30)
+        redefinirBtn.Position = UDim2.new(0, 15, 0.5, -15)
+        redefinirBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         redefinirBtn.Text = "Redefinir"
-        redefinirBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
+        redefinirBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
         redefinirBtn.Font = Enum.Font.GothamBold
-        redefinirBtn.TextSize = 13
+        redefinirBtn.TextSize = 12
         redefinirBtn.Parent = topBar
         local cornerR = Instance.new("UICorner")
-        cornerR.CornerRadius = UDim.new(0, 8)
+        cornerR.CornerRadius = UDim.new(1, 0)
         cornerR.Parent = redefinirBtn
 
         local salvarBtn = Instance.new("TextButton")
-        salvarBtn.Size = UDim2.new(0, 110, 0, 36)
-        salvarBtn.Position = UDim2.new(1, -130, 0.5, -18)
-        salvarBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 80)
+        salvarBtn.Size = UDim2.new(0, 100, 0, 30)
+        salvarBtn.Position = UDim2.new(0, 125, 0.5, -15)
+        salvarBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
         salvarBtn.Text = "Salvar"
         salvarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         salvarBtn.Font = Enum.Font.GothamBold
-        salvarBtn.TextSize = 13
+        salvarBtn.TextSize = 12
         salvarBtn.Parent = topBar
         local cornerS = Instance.new("UICorner")
-        cornerS.CornerRadius = UDim.new(0, 8)
+        cornerS.CornerRadius = UDim.new(1, 0)
         cornerS.Parent = salvarBtn
 
-        -- Container Central do Slider
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(0, 200, 1, 0)
+        title.Position = UDim2.new(0.5, -100, 0, 0)
+        title.BackgroundTransparency = 1
+        title.Text = "AJUSTAR CONTROLES"
+        title.TextColor3 = Color3.fromRGB(200, 200, 200)
+        title.Font = Enum.Font.GothamBold
+        title.TextSize = 13
+        title.Parent = topBar
+
+        -- Container do Slider de Ajuste no Canto Direito Superior
         local sliderContainer = Instance.new("Frame")
-        sliderContainer.Size = UDim2.new(0, 400, 1, 0)
-        sliderContainer.Position = UDim2.new(0.5, -200, 0, 0)
+        sliderContainer.Size = UDim2.new(0, 320, 1, 0)
+        sliderContainer.Position = UDim2.new(1, -335, 0, 0)
         sliderContainer.BackgroundTransparency = 1
         sliderContainer.Parent = topBar
 
         local sliderLabel = Instance.new("TextLabel")
-        sliderLabel.Size = UDim2.new(1, 0, 0, 35)
-        sliderLabel.Position = UDim2.new(0, 0, 0.1, 0)
+        sliderLabel.Size = UDim2.new(0, 120, 1, 0)
         sliderLabel.BackgroundTransparency = 1
         sliderLabel.Text = "Selecione um botão"
-        sliderLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+        sliderLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
         sliderLabel.Font = Enum.Font.GothamBold
-        sliderLabel.TextSize = 14
+        sliderLabel.TextSize = 11
+        sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
         sliderLabel.Parent = sliderContainer
 
         local sliderBg = Instance.new("Frame")
-        sliderBg.Size = UDim2.new(0.8, 0, 0, 6)
-        sliderBg.Position = UDim2.new(0.1, 0, 0.65, 0)
-        sliderBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        sliderBg.Size = UDim2.new(0, 180, 0, 4)
+        sliderBg.Position = UDim2.new(0, 130, 0.5, -2)
+        sliderBg.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
         sliderBg.BorderSizePixel = 0
         sliderBg.Visible = false
         sliderBg.Parent = sliderContainer
 
         local sliderFill = Instance.new("Frame")
         sliderFill.Size = UDim2.new(0.5, 0, 1, 0)
-        sliderFill.BackgroundColor3 = Color3.fromRGB(0, 220, 110)
+        sliderFill.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
         sliderFill.BorderSizePixel = 0
         sliderFill.Parent = sliderBg
 
         local sliderBtn = Instance.new("TextButton")
-        sliderBtn.Size = UDim2.new(0, 20, 0, 20)
-        sliderBtn.Position = UDim2.new(0.5, -10, 0.5, -10)
+        sliderBtn.Size = UDim2.new(0, 14, 0, 14)
+        sliderBtn.Position = UDim2.new(0.5, -7, 0.5, -7)
         sliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         sliderBtn.Text = ""
         sliderBtn.Parent = sliderBg
@@ -1412,7 +1451,7 @@ return function(env)
         local function updateSlider(percent)
             percent = math.clamp(percent, 0, 1)
             sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            sliderBtn.Position = UDim2.new(percent, -10, 0.5, -10)
+            sliderBtn.Position = UDim2.new(percent, -7, 0.5, -7)
             
             if activeProxy then
                 local realButton = activeProxy.Parent
@@ -1457,9 +1496,9 @@ return function(env)
                 handle.Name = "FTF_DragHandle"
                 handle.Size = UDim2.new(1, 0, 1, 0)
                 handle.Position = UDim2.new(0, 0, 0, 0)
-                handle.BackgroundTransparency = 1 -- Totalmente limpo sem poluir
+                handle.BackgroundTransparency = 1 -- Totalmente transparente por padrão
                 handle.BorderSizePixel = 2
-                handle.BorderColor3 = Color3.fromRGB(150, 150, 150)
+                handle.BorderColor3 = Color3.fromRGB(120, 120, 120)
                 handle.Active = true
                 handle.ZIndex = 100
                 handle.Text = ""
@@ -1485,13 +1524,13 @@ return function(env)
                         activeProxy = handle
                         sliderBg.Visible = true
 
-                        -- Aplica borda verde fina de seleção
+                        -- Aplica borda verde neon suave apenas ao selecionar
                         for _, h in ipairs(activeHandles) do
-                            h.BorderColor3 = Color3.fromRGB(150, 150, 150)
+                            h.BorderColor3 = Color3.fromRGB(120, 120, 120)
                             h.BackgroundTransparency = 1
                         end
-                        handle.BorderColor3 = Color3.fromRGB(0, 255, 120) -- Borda verde
-                        handle.BackgroundTransparency = 0.96
+                        handle.BorderColor3 = Color3.fromRGB(0, 255, 120) -- Verde Brawl Stars
+                        handle.BackgroundTransparency = 0.97
 
                         local currentSize = realButton.Size.X.Offset
                         local minSize, maxSize = 35, 150
@@ -1523,16 +1562,16 @@ return function(env)
 
         redefinirBtn.MouseButton1Click:Connect(function()
             for key, btn in pairs(realBtns) do
-                local original = originalLayouts[key]
+                local original = originalLayouts[key] or defaultSettings[key]
                 if btn and original then
-                    btn.Position = original.Position
-                    btn.Size = original.Size
+                    btn.Position = original.Position or UDim2.new(original.XS, original.XO, original.YS, original.YO)
+                    btn.Size = original.Size or UDim2.fromOffset(original.Size, original.Size)
                     tempSettings[key] = {
-                        XS = original.Position.X.Scale,
-                        XO = original.Position.X.Offset,
-                        YS = original.Position.Y.Scale,
-                        YO = original.Position.Y.Offset,
-                        Size = original.Size.X.Offset
+                        XS = btn.Position.X.Scale,
+                        XO = btn.Position.X.Offset,
+                        YS = btn.Position.Y.Scale,
+                        YO = btn.Position.Y.Offset,
+                        Size = btn.Size.X.Offset
                     }
                 end
             end
@@ -1570,7 +1609,7 @@ return function(env)
             end
             screenGui:Destroy()
             screenGuiActive = false
-            SendNotification("Controles salvos com sucesso!", 3)
+            SendNotification("Controles customizados salvos!", 3)
         end)
     end
 
@@ -1656,6 +1695,7 @@ return function(env)
         -- Ocultação de botões futura
     end)
 
+    -- A toggle agora reverte ou ativa de forma funcional em tempo real
     Library:CreateToggle(Page, "Enable Custom Controls", controlSettings.CustomControlsEnabled or false, function(state)
         controlSettings.CustomControlsEnabled = state
         saveControlSettings(controlSettings)
@@ -1665,10 +1705,10 @@ return function(env)
             pcall(function()
                 local realBtns = getRealButtons()
                 for key, btn in pairs(realBtns) do
-                    local original = originalLayouts[key]
+                    local original = originalLayouts[key] or defaultSettings[key]
                     if btn and original then
-                        btn.Position = original.Position
-                        btn.Size = original.Size
+                        btn.Position = original.Position or UDim2.new(original.XS, original.XO, original.YS, original.YO)
+                        btn.Size = original.Size or UDim2.fromOffset(original.Size, original.Size)
                     end
                 end
             end)
@@ -1861,7 +1901,7 @@ return function(env)
         end
     end)
 
-    -- Salva o estado dos layouts padrões e aplica as posições se estiver ativo
+    -- Salva e aplica os layouts padrões, mantendo a integridade se desativado
     backupOriginalLayouts()
     applyControlSettings()
 
