@@ -189,8 +189,8 @@ return function(env)
     end
 
     local function setupBlackoutBypass(state)
-        removeBlackScreenEnabled = state
         local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
+        removeBlackScreenEnabled = state
         
         if state then
             if PlayerGui then
@@ -1208,635 +1208,400 @@ return function(env)
         end
     end
 
-    local stretchConnection = nil
-
     -- ==========================================
-    -- CONFIGURAÇÃO DOS CONTROLES (HUD.JSON BACKEND)
+    -- SISTEMA DE CUSTOMIZAÇÃO DE CONTROLES
     -- ==========================================
-    local settingsFile = "Hud.json"
+    local settingsFile = "FTF_MobileControls.json"
     local defaultSettings = {
-        ThumbstickEnabled = false,
-        ThumbstickX = 0,
-        ThumbstickY = 0,
-        JumpEnabled = false,  
-        JumpX = 0,  
-        JumpY = 0,  
-        JumpScale = 1,  
-        EEnabled = false,  
-        CEnabled = false,  
-        EState = {X = 0.8, Y = 0.5, Size = 45},  
-        CState = {X = 0.7, Y = 0.7, Size = 45}
+        Thumbstick = { X = 0.15, Y = 0.75, Size = 120 },
+        Jump = { X = 0.85, Y = 0.75, Size = 70 },
+        E = { X = 0.75, Y = 0.8, Size = 55 },
+        C = { X = 0.75, Y = 0.6, Size = 55 }
     }
 
-    local function SaveSettings(tbl)
+    local function loadControlSettings()
+        local loaded = nil
         pcall(function()
-            local json = HttpService:JSONEncode(tbl)
-            writefile(settingsFile, json)
+            if isfile and isfile(settingsFile) then
+                local raw = readfile(settingsFile)
+                loaded = HttpService:JSONDecode(raw)
+            end
+        end)
+        return loaded or HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
+    end
+
+    local controlSettings = loadControlSettings()
+
+    local function saveControlSettings(tbl)
+        pcall(function()
+            if writefile then
+                writefile(settingsFile, HttpService:JSONEncode(tbl))
+            end
         end)
     end
 
-    local function LoadSettings(defaults)
-        local success, result = pcall(function()
-            if isfile(settingsFile) then
-                local data = readfile(settingsFile)
-                return HttpService:JSONDecode(data)
-            else
-                return defaults
-            end
-        end)
-        if success then return result else return defaults end
-    end
-
-    local settings = LoadSettings(defaultSettings)
-
-    -- Busca segura dos elementos móveis para evitar congelamentos no computador
-    local touchGui, frame, jumpButton, thumbstick
-    pcall(function()
-        local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
-        if playerGui then
-            touchGui = playerGui:WaitForChild("TouchGui", 2)
-            if touchGui then
-                frame = touchGui:WaitForChild("TouchControlFrame", 2)
-                if frame then
-                    jumpButton = frame:WaitForChild("JumpButton", 2)
-                    thumbstick = frame:FindFirstChild("ThumbstickFrame") or frame:FindFirstChild("DynamicThumbstickFrame")
-                end
-            end
-        end
-    end)
-
-    local originalJumpPosition = jumpButton and jumpButton.Position or UDim2.new(0, 0, 0, 0)
-    local originalJumpSize = jumpButton and jumpButton.Size or UDim2.new(0, 0, 0, 0)
-    local originalThumbstickPosition = thumbstick and thumbstick.Position or UDim2.new(0, 0, 0, 0)
-
-    local EOriginalPosition, EOriginalSize
-    local COriginalPosition, COriginalSize
-
-    local function SaveOriginal(Button, isE)
-        if not Button then return end
-        if isE then
-            if not EOriginalPosition then
-                EOriginalPosition = Button.Position
-                EOriginalSize = Button.Size
-            end
-        else
-            if not COriginalPosition then
-                COriginalPosition = Button.Position
-                COriginalSize = Button.Size
-            end
-        end
-    end
-
-    local function RestoreOriginal1(Button)
-        if not Button then return end
-        if EOriginalPosition then
-            Button.Position = EOriginalPosition
-            Button.Size = EOriginalSize
-        end
-    end
-
-    local function RestoreOriginal2(Button)
-        if not Button then return end
-        if COriginalPosition then
-            Button.Position = COriginalPosition
-            Button.Size = COriginalSize
-        end
-    end
-
-    local function ApplyThumbstick()
-        if thumbstick then
-            if settings.ThumbstickEnabled then
-                thumbstick.Position = UDim2.new(settings.ThumbstickX / 100, 0, settings.ThumbstickY / 100, 0)
-            else
-                thumbstick.Position = originalThumbstickPosition
-            end
-        end
-    end
-
-    local function ApplyJump()
-        if jumpButton then
-            if settings.JumpEnabled then
-                jumpButton.Position = UDim2.new(settings.JumpX / 100, 0, settings.JumpY / 100, 0)
-                jumpButton.Size = UDim2.new(0, originalJumpSize.X.Offset * settings.JumpScale, 0, originalJumpSize.Y.Offset * settings.JumpScale)
-            else
-                jumpButton.Position = originalJumpPosition
-                jumpButton.Size = originalJumpSize
-            end
-        end
-    end
-
-    local function GetButtonByText(TextToFind)
-        local success, result = pcall(function()
-            local Gui = LocalPlayer:WaitForChild("PlayerGui", 5)
-            if not Gui then return nil end
-            local ContextGui = Gui:FindFirstChild("ContextActionGui")
-            if not ContextGui then return nil end
-            local FrameObj = ContextGui:FindFirstChild("ContextButtonFrame")
-            if not FrameObj then return nil end
-            for _, Obj in ipairs(FrameObj:GetDescendants()) do
-                if Obj:IsA("TextLabel") and Obj.Name == "ActionTitle" and Obj.Text == TextToFind then
-                    local Parent = Obj.Parent
-                    while Parent and Parent ~= FrameObj do
-                        if Parent.Name == "ContextActionButton" then
-                            return Parent
-                        end
-                        Parent = Parent.Parent
+    local function getButtonByText(TextToFind)
+        local Gui = LocalPlayer:FindFirstChild("PlayerGui")
+        if not Gui then return nil end
+        local ContextGui = Gui:FindFirstChild("ContextActionGui")
+        local Frame = ContextGui and ContextGui:FindFirstChild("ContextButtonFrame")
+        if not Frame then return nil end
+        for _, Obj in ipairs(Frame:GetDescendants()) do
+            if Obj:IsA("TextLabel") and Obj.Name == "ActionTitle" and Obj.Text == TextToFind then
+                local Parent = Obj.Parent
+                while Parent and Parent ~= Frame do
+                    if Parent.Name == "ContextActionButton" then
+                        return Parent
                     end
+                    Parent = Parent.Parent
                 end
             end
-        end)
-        return success and result or nil
+        end
+        return nil
     end
 
-    local function GetCOrQButton()
-        return GetButtonByText("C") or GetButtonByText("Q")
+    local function getCOrQButton()
+        return getButtonByText("C") or getButtonByText("Q")
     end
 
-    local function Apply(Button, State)
+    local function applyControlSettings()
         pcall(function()
-            if Button then
-                Button.Position = UDim2.fromScale(State.X, State.Y)
-                Button.Size = UDim2.fromOffset(State.Size, State.Size)
+            local touchGui = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("TouchGui")
+            local touchFrame = touchGui and touchGui:FindFirstChild("TouchControlFrame")
+            if not touchFrame then return end
+
+            local realJump = touchFrame:FindFirstChild("JumpButton")
+            local realThumb = touchFrame:FindFirstChild("ThumbstickFrame") or touchFrame:FindFirstChild("DynamicThumbstickFrame")
+
+            if realJump and controlSettings.Jump then
+                realJump.Position = UDim2.new(controlSettings.Jump.X, -controlSettings.Jump.Size/2, controlSettings.Jump.Y, -controlSettings.Jump.Size/2)
+                realJump.Size = UDim2.new(0, controlSettings.Jump.Size, 0, controlSettings.Jump.Size)
+            end
+
+            if realThumb and controlSettings.Thumbstick then
+                realThumb.Position = UDim2.new(controlSettings.Thumbstick.X, -controlSettings.Thumbstick.Size/2, controlSettings.Thumbstick.Y, -controlSettings.Thumbstick.Size/2)
+                realThumb.Size = UDim2.new(0, controlSettings.Thumbstick.Size, 0, controlSettings.Thumbstick.Size)
+            end
+
+            local realE = getButtonByText("E")
+            if realE and controlSettings.E then
+                realE.Position = UDim2.new(controlSettings.E.X, -controlSettings.E.Size/2, controlSettings.E.Y, -controlSettings.E.Size/2)
+                realE.Size = UDim2.new(0, controlSettings.E.Size, 0, controlSettings.E.Size)
+            end
+
+            local realC = getCOrQButton()
+            if realC and controlSettings.C then
+                realC.Position = UDim2.new(controlSettings.C.X, -controlSettings.C.Size/2, controlSettings.C.Y, -controlSettings.C.Size/2)
+                realC.Size = UDim2.new(0, controlSettings.C.Size, 0, controlSettings.C.Size)
             end
         end)
     end
 
-    local function SyncCButton()
-        pcall(function()
-            if settings.CEnabled then
-                local Button = GetCOrQButton()
-                if Button then Apply(Button, settings.CState) end
-            end
-        end)
-    end
-
-    local function SyncEButton()
-        pcall(function()
-            if settings.EEnabled then
-                local Button = GetButtonByText("E")
-                if Button then Apply(Button, settings.EState) end
-            end
-        end)
-    end
-
+    -- Sincronização constante para evitar resets involuntários do jogo
     task.spawn(function()
         while true do
-            task.wait(2.3)
-            if settings.CEnabled then pcall(SyncCButton) end
-            if settings.EEnabled then pcall(SyncEButton) end
+            task.wait(1.5)
+            applyControlSettings()
         end
     end)
 
-    task.defer(function()
-        ApplyThumbstick()
-        ApplyJump()
-        SyncCButton()
-        SyncEButton()
-    end)
-
-    -- ==========================================
-    -- SISTEMA DE PERSONALIZAÇÃO VISUAL (BRAWL)
-    -- ==========================================
-    local function openBrawlControlEditor()
-        local pGui = LocalPlayer:FindFirstChild("PlayerGui")
-        if not pGui then return end
-        if pGui:FindFirstChild("BrawlControlsEditor") then
-            pGui.BrawlControlsEditor:Destroy()
-        end
-
-        local editorGui = Instance.new("ScreenGui")
-        editorGui.Name = "BrawlControlsEditor"
-        editorGui.ResetOnSpawn = false
-        editorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        editorGui.Parent = pGui
-
-        local overlay = Instance.new("Frame")
-        overlay.Size = UDim2.new(1, 0, 1, 0)
-        overlay.BackgroundTransparency = 0.55
-        overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        overlay.Parent = editorGui
-
-        -- Top Bar (Redefinir / Salvar)
-        local topBar = Instance.new("Frame")
-        topBar.Size = UDim2.new(0, 420, 0, 60)
-        topBar.Position = UDim2.new(0.5, -210, 0, 15)
-        topBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        topBar.BorderSizePixel = 0
-        topBar.Parent = overlay
-
-        local topCorner = Instance.new("UICorner")
-        topCorner.CornerRadius = UDim.new(0, 8)
-        topCorner.Parent = topBar
-
-        local resetBtn = Instance.new("TextButton")
-        resetBtn.Size = UDim2.new(0, 140, 0, 35)
-        resetBtn.Position = UDim2.new(0, 30, 0.5, -17)
-        resetBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-        resetBtn.Text = "Redefinir"
-        resetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        resetBtn.Font = Enum.Font.SourceSansBold
-        resetBtn.TextSize = 15
-        resetBtn.Parent = topBar
-
-        local resetCorner = Instance.new("UICorner")
-        resetCorner.CornerRadius = UDim.new(0, 6)
-        resetCorner.Parent = resetBtn
+    local function captureCurrentPositions()
+        local camera = workspace.CurrentCamera
+        local screenWidth = camera and camera.ViewportSize.X or 1000
+        local screenHeight = camera and camera.ViewportSize.Y or 600
         
-        local resetStroke = Instance.new("UIStroke")
-        resetStroke.Color = Color3.fromRGB(255, 255, 255)
-        resetStroke.Thickness = 1
-        resetStroke.Parent = resetBtn
+        local function getRelativeCoords(btn)
+            if not btn or not btn:IsA("GuiObject") then return nil end
+            local absPos = btn.AbsolutePosition
+            local absSize = btn.AbsoluteSize
+            return {
+                X = (absPos.X + absSize.X / 2) / screenWidth,
+                Y = (absPos.Y + absSize.Y / 2) / screenHeight,
+                Size = math.max(absSize.X, absSize.Y)
+            }
+        end
 
-        local saveBtn = Instance.new("TextButton")
-        saveBtn.Size = UDim2.new(0, 140, 0, 35)
-        saveBtn.Position = UDim2.new(1, -170, 0.5, -17)
-        saveBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-        saveBtn.Text = "Salvar"
-        saveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        saveBtn.Font = Enum.Font.SourceSansBold
-        saveBtn.TextSize = 15
-        saveBtn.Parent = topBar
+        local currentSetup = HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
 
-        local saveCorner = Instance.new("UICorner")
-        saveCorner.CornerRadius = UDim.new(0, 6)
-        saveCorner.Parent = saveBtn
+        local touchGui = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("TouchGui")
+        local touchFrame = touchGui and touchGui:FindFirstChild("TouchControlFrame")
+        
+        if touchFrame then
+            local realJump = touchFrame:FindFirstChild("JumpButton")
+            local realThumb = touchFrame:FindFirstChild("ThumbstickFrame") or touchFrame:FindFirstChild("DynamicThumbstickFrame")
+            
+            local coordsJump = getRelativeCoords(realJump)
+            if coordsJump then currentSetup.Jump = coordsJump end
+            
+            local coordsThumb = getRelativeCoords(realThumb)
+            if coordsThumb then currentSetup.Thumbstick = coordsThumb end
+        end
 
-        local saveStroke = Instance.new("UIStroke")
-        saveStroke.Color = Color3.fromRGB(255, 255, 255)
-        saveStroke.Thickness = 1
-        saveStroke.Parent = saveBtn
+        local realE = getButtonByText("E")
+        local coordsE = getRelativeCoords(realE)
+        if coordsE then currentSetup.E = coordsE end
 
-        -- Central Panel (Size Slider / Movement Toggle)
-        local centerPanel = Instance.new("Frame")
-        centerPanel.Size = UDim2.new(0, 320, 0, 190)
-        centerPanel.Position = UDim2.new(0.5, -160, 0.5, -95)
-        centerPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        centerPanel.BorderSizePixel = 0
-        centerPanel.Parent = overlay
+        local realC = getCOrQButton()
+        local coordsC = getRelativeCoords(realC)
+        if coordsC then currentSetup.C = coordsC end
 
-        local centerCorner = Instance.new("UICorner")
-        centerCorner.CornerRadius = UDim.new(0, 10)
-        centerCorner.Parent = centerPanel
+        return currentSetup
+    end
 
-        local lockToggle = Instance.new("TextButton")
-        lockToggle.Size = UDim2.new(0, 280, 0, 30)
-        lockToggle.Position = UDim2.new(0, 20, 0, 15)
-        lockToggle.BackgroundTransparency = 1
-        lockToggle.Text = "Controle de movimento travado: " .. (settings.ThumbstickEnabled and "NÃO" or "SIM")
-        lockToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-        lockToggle.Font = Enum.Font.SourceSansBold
-        lockToggle.TextSize = 13
-        lockToggle.Parent = centerPanel
+    local function openControlEditor()
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "FTF_EditorDeControles"
+        screenGui.ResetOnSpawn = false
+        screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-        local sizeLabel = Instance.new("TextLabel")
-        sizeLabel.Size = UDim2.new(1, 0, 0, 20)
-        sizeLabel.Position = UDim2.new(0, 0, 0, 50)
-        sizeLabel.BackgroundTransparency = 1
-        sizeLabel.Text = "TAMANHO"
-        sizeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        sizeLabel.Font = Enum.Font.SourceSansBold
-        sizeLabel.TextSize = 14
-        sizeLabel.Parent = centerPanel
+        local bg = Instance.new("Frame")
+        bg.Size = UDim2.new(1, 0, 1, 0)
+        bg.BackgroundColor3 = Color3.fromRGB(15, 12, 12)
+        bg.BackgroundTransparency = 0.55
+        bg.BorderSizePixel = 0
+        bg.Parent = screenGui
+
+        local topBar = Instance.new("Frame")
+        topBar.Size = UDim2.new(1, 0, 0, 60)
+        topBar.Position = UDim2.new(0, 0, 0, 0)
+        topBar.BackgroundColor3 = Color3.fromRGB(30, 8, 8)
+        topBar.BackgroundTransparency = 0.15
+        topBar.BorderSizePixel = 0
+        topBar.Parent = bg
+
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(0, 300, 1, 0)
+        title.Position = UDim2.new(0.5, -150, 0, 0)
+        title.BackgroundTransparency = 1
+        title.Text = "PERSONALIZAR CONTROLES"
+        title.TextColor3 = Color3.fromRGB(255, 210, 210)
+        title.Font = Enum.Font.GothamBold
+        title.TextSize = 16
+        title.Parent = topBar
+
+        local redefinirBtn = Instance.new("TextButton")
+        redefinirBtn.Size = UDim2.new(0, 120, 0, 36)
+        redefinirBtn.Position = UDim2.new(0.5, -280, 0.5, -18)
+        redefinirBtn.BackgroundColor3 = Color3.fromRGB(95, 28, 28)
+        redefinirBtn.Text = "Redefinir"
+        redefinirBtn.TextColor3 = Color3.fromRGB(255, 220, 220)
+        redefinirBtn.Font = Enum.Font.GothamBold
+        redefinirBtn.TextSize = 14
+        redefinirBtn.Parent = topBar
+        local cornerR = Instance.new("UICorner")
+        cornerR.CornerRadius = UDim.new(0, 8)
+        cornerR.Parent = redefinirBtn
+
+        local salvarBtn = Instance.new("TextButton")
+        salvarBtn.Size = UDim2.new(0, 120, 0, 36)
+        salvarBtn.Position = UDim2.new(0.5, 160, 0.5, -18)
+        salvarBtn.BackgroundColor3 = Color3.fromRGB(120, 20, 20)
+        salvarBtn.Text = "Salvar"
+        salvarBtn.TextColor3 = Color3.fromRGB(255, 220, 220)
+        salvarBtn.Font = Enum.Font.GothamBold
+        salvarBtn.TextSize = 14
+        salvarBtn.Parent = topBar
+        local cornerS = Instance.new("UICorner")
+        cornerS.CornerRadius = UDim.new(0, 8)
+        cornerS.Parent = salvarBtn
+
+        local sizePanel = Instance.new("Frame")
+        sizePanel.Size = UDim2.new(0, 320, 0, 90)
+        sizePanel.Position = UDim2.new(0.5, -160, 1, -110)
+        sizePanel.BackgroundColor3 = Color3.fromRGB(45, 14, 14)
+        sizePanel.BorderSizePixel = 1
+        sizePanel.BorderColor3 = Color3.fromRGB(110, 30, 30)
+        sizePanel.Visible = false
+        sizePanel.Parent = bg
+        local panelCorner = Instance.new("UICorner")
+        panelCorner.CornerRadius = UDim.new(0, 10)
+        panelCorner.Parent = sizePanel
+
+        local sliderLabel = Instance.new("TextLabel")
+        sliderLabel.Size = UDim2.new(1, 0, 0, 30)
+        sliderLabel.BackgroundTransparency = 1
+        sliderLabel.Text = "Tamanho: 100px"
+        sliderLabel.TextColor3 = Color3.fromRGB(255, 180, 180)
+        sliderLabel.Font = Enum.Font.GothamBold
+        sliderLabel.TextSize = 13
+        sliderLabel.Parent = sizePanel
 
         local sliderBg = Instance.new("Frame")
-        sliderBg.Size = UDim2.new(0, 240, 0, 8)
-        sliderBg.Position = UDim2.new(0.5, -120, 0, 80)
-        sliderBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        sliderBg.Size = UDim2.new(0.8, 0, 0, 8)
+        sliderBg.Position = UDim2.new(0.1, 0, 0.6, 0)
+        sliderBg.BackgroundColor3 = Color3.fromRGB(35, 10, 10)
         sliderBg.BorderSizePixel = 0
-        sliderBg.Parent = centerPanel
-        
-        local sliderCorner = Instance.new("UICorner")
-        sliderCorner.CornerRadius = UDim.new(0, 4)
-        sliderCorner.Parent = sliderBg
+        sliderBg.Parent = sizePanel
 
-        local sliderKnob = Instance.new("ImageButton")
-        sliderKnob.Size = UDim2.new(0, 22, 0, 22)
-        sliderKnob.Position = UDim2.new(0.5, -11, 0.5, -11)
-        sliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        sliderKnob.BorderSizePixel = 0
-        sliderKnob.Parent = sliderBg
+        local sliderFill = Instance.new("Frame")
+        sliderFill.Size = UDim2.new(0.5, 0, 1, 0)
+        sliderFill.BackgroundColor3 = Color3.fromRGB(120, 20, 20)
+        sliderFill.BorderSizePixel = 0
+        sliderFill.Parent = sliderBg
 
-        local knobCorner = Instance.new("UICorner")
-        knobCorner.CornerRadius = UDim.new(1, 0)
-        knobCorner.Parent = sliderKnob
+        local sliderBtn = Instance.new("TextButton")
+        sliderBtn.Size = UDim2.new(0, 20, 0, 20)
+        sliderBtn.Position = UDim2.new(0.5, -10, 0.5, -10)
+        sliderBtn.BackgroundColor3 = Color3.fromRGB(255, 220, 220)
+        sliderBtn.Text = ""
+        sliderBtn.Parent = sliderBg
+        local sliderBtnCorner = Instance.new("UICorner")
+        sliderBtnCorner.CornerRadius = UDim.new(1, 0)
+        sliderBtnCorner.Parent = sliderBtn
 
-        local descLabel = Instance.new("TextLabel")
-        descLabel.Size = UDim2.new(1, 0, 0, 30)
-        descLabel.Position = UDim2.new(0, 0, 0, 110)
-        descLabel.BackgroundTransparency = 1
-        descLabel.Text = "Deslize o botão para mudar o tamanho."
-        descLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-        descLabel.Font = Enum.Font.SourceSansItalic
-        descLabel.TextSize = 11
-        descLabel.Parent = centerPanel
-
-        local tabContainer = Instance.new("Frame")
-        tabContainer.Size = UDim2.new(0, 260, 0, 30)
-        tabContainer.Position = UDim2.new(0.5, -130, 1, -15)
-        tabContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        tabContainer.BorderSizePixel = 0
-        tabContainer.Parent = centerPanel
-        
-        local tabCorner = Instance.new("UICorner")
-        tabCorner.CornerRadius = UDim.new(0, 6)
-        tabCorner.Parent = tabContainer
-
-        local movBtn = Instance.new("TextLabel")
-        movBtn.Size = UDim2.new(0.5, 0, 1, 0)
-        movBtn.BackgroundTransparency = 1
-        movBtn.Text = "MOVIMENTO"
-        movBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        movBtn.Font = Enum.Font.SourceSansBold
-        movBtn.TextSize = 10
-        movBtn.Parent = tabContainer
-
-        local atkBtn = Instance.new("TextLabel")
-        atkBtn.Size = UDim2.new(0.5, 0, 1, 0)
-        atkBtn.Position = UDim2.new(0.5, 0, 0, 0)
-        atkBtn.BackgroundTransparency = 1
-        atkBtn.Text = "ATAQUE"
-        atkBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        atkBtn.Font = Enum.Font.SourceSansBold
-        atkBtn.TextSize = 10
-        atkBtn.Parent = tabContainer
-
-        -- Overlay de arraste e seletores dos botões reais
-        local selectedControl = nil
-        local selectedStroke = Instance.new("UIStroke")
-        selectedStroke.Color = Color3.fromRGB(85, 255, 127) -- Borda azul/verde neon
-        selectedStroke.Thickness = 3
-        selectedStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-        local controls = {
-            ["Thumbstick"] = {
-                Name = "Analógico",
-                Real = thumbstick,
-                DefaultPos = originalThumbstickPosition,
-                Parent = overlay,
-                Type = "Thumbstick"
-            },
-            ["Jump"] = {
-                Name = "Pular",
-                Real = jumpButton,
-                DefaultPos = originalJumpPosition,
-                Parent = overlay,
-                Type = "Jump"
-            },
-            ["E"] = {
-                Name = "Botão E",
-                Real = GetButtonByText("E"),
-                DefaultPos = UDim2.new(0.8, 0, 0.5, 0),
-                Parent = overlay,
-                Type = "E"
-            },
-            ["C"] = {
-                Name = "Botão C/Q",
-                Real = GetCOrQButton(),
-                DefaultPos = UDim2.new(0.7, 0, 0.7, 0),
-                Parent = overlay,
-                Type = "C"
-            }
-        }
-
-        local dummyHandles = {}
-
-        local function selectControl(key)
-            selectedControl = key
-            local ctrl = controls[key]
-            local dummy = dummyHandles[key]
-            if dummy then
-                selectedStroke.Parent = dummy
-                local currentSize = 1
-                if key == "Thumbstick" then
-                    currentSize = 1.0
-                elseif key == "Jump" then
-                    currentSize = settings.JumpScale or 1.0
-                elseif key == "E" then
-                    currentSize = ((settings.EState.Size - 35) / 35) + 1.0
-                elseif key == "C" then
-                    currentSize = ((settings.CState.Size - 35) / 35) + 1.0
-                end
-                
-                local pct = math.clamp((currentSize - 1) / 1.5, 0, 1) -- 0.5 a 2.0
-                sliderKnob.Position = UDim2.new(pct, -11, 0.5, -11)
+        local tempSettings = HttpService:JSONDecode(HttpService:JSONEncode(controlSettings))
+        local captured = captureCurrentPositions()
+        for k, v in pairs(captured) do
+            if tempSettings[k] == nil then
+                tempSettings[k] = v
             end
         end
 
-        local function makeDraggable(dummy, key)
+        local activeProxy = nil
+
+        local function updateSlider(percent)
+            percent = math.clamp(percent, 0, 1)
+            sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+            sliderBtn.Position = UDim2.new(percent, -10, 0.5, -10)
+            
+            if activeProxy then
+                local key = activeProxy:GetAttribute("ControlKey")
+                local minSize, maxSize = 35, 150
+                if key == "Thumbstick" then minSize, maxSize = 60, 250 end
+                
+                local newSize = math.round(minSize + (maxSize - minSize) * percent)
+                tempSettings[key].Size = newSize
+                activeProxy.Size = UDim2.new(0, newSize, 0, newSize)
+                activeProxy.Position = UDim2.new(tempSettings[key].X, -newSize/2, tempSettings[key].Y, -newSize/2)
+                sliderLabel.Text = "Tamanho: " .. tostring(newSize) .. "px"
+            end
+        end
+
+        local draggingSlider = false
+        sliderBtn.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                draggingSlider = true
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                draggingSlider = false
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local relativeX = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+                updateSlider(relativeX)
+            end
+        end)
+
+        local function createProxy(key, label, color)
+            local proxy = Instance.new("TextButton")
+            proxy:SetAttribute("ControlKey", key)
+            proxy.Text = label
+            proxy.Font = Enum.Font.GothamBold
+            proxy.TextColor3 = Color3.fromRGB(255, 255, 255)
+            proxy.TextSize = 14
+            proxy.BackgroundColor3 = color
+            proxy.BackgroundTransparency = 0.25
+            proxy.BorderSizePixel = 2
+            proxy.BorderColor3 = Color3.fromRGB(150, 150, 150)
+            proxy.Parent = bg
+
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(1, 0)
+            corner.Parent = proxy
+
+            local config = tempSettings[key]
+            proxy.Size = UDim2.new(0, config.Size, 0, config.Size)
+            proxy.Position = UDim2.new(config.X, -config.Size/2, config.Y, -config.Size/2)
+
             local dragging = false
-            local dragInput = nil
             local dragStart = nil
             local startPos = nil
 
-            dummy.InputBegan:Connect(function(input)
+            proxy.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    selectControl(key)
                     dragging = true
                     dragStart = input.Position
-                    startPos = dummy.Position
-                    
-                    input.Changed:Connect(function()
-                        if input.UserInputState == Enum.UserInputState.End then
-                            dragging = false
+                    startPos = proxy.Position
+
+                    activeProxy = proxy
+                    sizePanel.Visible = true
+
+                    local minSize, maxSize = 35, 150
+                    if key == "Thumbstick" then minSize, maxSize = 60, 250 end
+                    local percent = (config.Size - minSize) / (maxSize - minSize)
+                    updateSlider(percent)
+
+                    for _, child in ipairs(bg:GetChildren()) do
+                        if child:IsA("TextButton") and child:GetAttribute("ControlKey") then
+                            child.BorderColor3 = Color3.fromRGB(150, 150, 150)
+                            child.BackgroundTransparency = 0.4
                         end
-                    end)
+                    end
+                    proxy.BorderColor3 = Color3.fromRGB(255, 255, 0)
+                    proxy.BackgroundTransparency = 0.1
                 end
             end)
 
-            dummy.InputChanged:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                    dragInput = input
+            proxy.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
                 end
             end)
 
             UserInputService.InputChanged:Connect(function(input)
-                if input == dragInput and dragging then
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                     local delta = input.Position - dragStart
-                    local parent = dummy.Parent
-                    if not parent then return end
+                    local newX = math.clamp((startPos.X.Offset + delta.X + proxy.Size.X.Offset/2) / bg.AbsoluteSize.X, 0.05, 0.95)
+                    local newY = math.clamp((startPos.Y.Offset + delta.Y + proxy.Size.Y.Offset/2) / bg.AbsoluteSize.Y, 0.05, 0.95)
                     
-                    local parentSize = parent.AbsoluteSize
-                    local newXOffset = startPos.X.Offset + delta.X
-                    local newYOffset = startPos.Y.Offset + delta.Y
-                    
-                    local newXScale = startPos.X.Scale + (delta.X / parentSize.X)
-                    local newYScale = startPos.Y.Scale + (delta.Y / parentSize.Y)
-                    
-                    newXScale = math.clamp(newXScale, 0.02, 0.98)
-                    newYScale = math.clamp(newYScale, 0.02, 0.98)
-                    
-                    local finalPos = UDim2.fromScale(newXScale, newYScale)
-                    dummy.Position = finalPos
-
-                    local ctrl = controls[key]
-                    if ctrl.Real then
-                        ctrl.Real.Position = finalPos
-                    end
-                    
-                    if key == "Thumbstick" then
-                        settings.ThumbstickX = newXScale * 100
-                        settings.ThumbstickY = newYScale * 100
-                        settings.ThumbstickEnabled = true
-                    elseif key == "Jump" then
-                        settings.JumpX = newXScale * 100
-                        settings.JumpY = newYScale * 100
-                        settings.JumpEnabled = true
-                    elseif key == "E" then
-                        settings.EState.X = newXScale
-                        settings.EState.Y = newYScale
-                        settings.EEnabled = true
-                    elseif key == "C" then
-                        settings.CState.X = newXScale
-                        settings.CState.Y = newYScale
-                        settings.CEnabled = true
-                    end
+                    config.X = newX
+                    config.Y = newY
+                    proxy.Position = UDim2.new(newX, -proxy.Size.X.Offset/2, newY, -proxy.Size.Y.Offset/2)
                 end
             end)
+
+            return proxy
         end
 
-        for key, ctrl in pairs(controls) do
-            local realPos = ctrl.DefaultPos
-            local realSize = UDim2.new(0, 60, 0, 60)
+        local pThumb = createProxy("Thumbstick", "Movimento", Color3.fromRGB(45, 45, 45))
+        local pJump = createProxy("Jump", "Pulo", Color3.fromRGB(120, 20, 20))
+        local pE = createProxy("E", "E (Ação)", Color3.fromRGB(20, 110, 20))
+        local pC = createProxy("C", "C / Q", Color3.fromRGB(20, 20, 110))
 
-            if ctrl.Real then
-                realPos = ctrl.Real.Position
-                realSize = ctrl.Real.Size
-            else
-                if key == "E" and settings.EEnabled then
-                    realPos = UDim2.fromScale(settings.EState.X, settings.EState.Y)
-                    realSize = UDim2.fromOffset(settings.EState.Size, settings.EState.Size)
-                elseif key == "C" and settings.CEnabled then
-                    realPos = UDim2.fromScale(settings.CState.X, settings.CState.Y)
-                    realSize = UDim2.fromOffset(settings.CState.Size, settings.CState.Size)
-                end
+        redefinirBtn.MouseButton1Click:Connect(function()
+            tempSettings = HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
+            for _, proxy in ipairs({pThumb, pJump, pE, pC}) do
+                local key = proxy:GetAttribute("ControlKey")
+                local config = tempSettings[key]
+                proxy.Size = UDim2.new(0, config.Size, 0, config.Size)
+                proxy.Position = UDim2.new(config.X, -config.Size/2, config.Y, -config.Size/2)
             end
-
-            local dummy = Instance.new("TextButton")
-            dummy.Name = "Dummy_" .. key
-            dummy.Size = realSize
-            dummy.Position = realPos
-            dummy.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
-            dummy.BackgroundTransparency = 0.65
-            dummy.Text = ctrl.Name
-            dummy.TextColor3 = Color3.fromRGB(255, 255, 255)
-            dummy.Font = Enum.Font.SourceSansBold
-            dummy.TextSize = 13
-            dummy.ZIndex = 100
-            dummy.Parent = overlay
-
-            local dCorner = Instance.new("UICorner")
-            dCorner.CornerRadius = UDim.new(1, 0)
-            dCorner.Parent = dummy
-
-            local dStroke = Instance.new("UIStroke")
-            dStroke.Color = Color3.fromRGB(255, 255, 255)
-            dStroke.Thickness = 1
-            dStroke.Parent = dummy
-
-            dummyHandles[key] = dummy
-            makeDraggable(dummy, key)
-        end
-
-        selectControl("Jump")
-
-        lockToggle.MouseButton1Click:Connect(function()
-            settings.ThumbstickEnabled = not settings.ThumbstickEnabled
-            lockToggle.Text = "Controle de movimento travado: " .. (settings.ThumbstickEnabled and "NÃO" or "SIM")
-            ApplyThumbstick()
-        end)
-
-        local sliderDragging = false
-        local sliderInput = nil
-        sliderKnob.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                sliderDragging = true
-                input.Changed:Connect(function()
-                    if input.UserInputState == Enum.UserInputState.End then
-                        sliderDragging = false
-                    end
-                end)
+            if activeProxy then
+                local key = activeProxy:GetAttribute("ControlKey")
+                local config = tempSettings[key]
+                local minSize, maxSize = 35, 150
+                if key == "Thumbstick" then minSize, maxSize = 60, 250 end
+                updateSlider((config.Size - minSize) / (maxSize - minSize))
             end
         end)
 
-        sliderKnob.InputChanged:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                sliderInput = input
-            end
-        end)
-
-        UserInputService.InputChanged:Connect(function(input)
-            if sliderDragging and input == sliderInput then
-                local relativeX = input.Position.X - sliderBg.AbsolutePosition.X
-                local pct = math.clamp(relativeX / sliderBg.AbsoluteSize.X, 0, 1)
-                sliderKnob.Position = UDim2.new(pct, -11, 0.5, -11)
-
-                local scaleFactor = 0.5 + (pct * 1.5) -- Tamanhos escalados de 0.5x a 2.0x
-                if selectedControl then
-                    local ctrl = controls[selectedControl]
-                    local dummy = dummyHandles[selectedControl]
-                    
-                    if selectedControl == "Jump" then
-                        settings.JumpScale = scaleFactor
-                        settings.JumpEnabled = true
-                        ApplyJump()
-                        if dummy then
-                            dummy.Size = UDim2.new(0, originalJumpSize.X.Offset * scaleFactor, 0, originalJumpSize.Y.Offset * scaleFactor)
-                        end
-                    elseif selectedControl == "E" then
-                        local sizeValue = math.floor(35 + (pct * 45))
-                        settings.EState.Size = sizeValue
-                        settings.EEnabled = true
-                        if ctrl.Real then Apply(ctrl.Real, settings.EState) end
-                        if dummy then dummy.Size = UDim2.fromOffset(sizeValue, sizeValue) end
-                    elseif selectedControl == "C" then
-                        local sizeValue = math.floor(35 + (pct * 45))
-                        settings.CState.Size = sizeValue
-                        settings.CEnabled = true
-                        if ctrl.Real then Apply(ctrl.Real, settings.CState) end
-                        if dummy then dummy.Size = UDim2.fromOffset(sizeValue, sizeValue) end
-                    end
-                end
-            end
-        end)
-
-        resetBtn.MouseButton1Click:Connect(function()
-            settings = {
-                ThumbstickEnabled = false,
-                ThumbstickX = 0,
-                ThumbstickY = 0,
-                JumpEnabled = false,  
-                JumpX = 0,  
-                JumpY = 0,  
-                JumpScale = 1,  
-                EEnabled = false,  
-                CEnabled = false,  
-                EState = {X = 0.8, Y = 0.5, Size = 45},
-                CState = {X = 0.7, Y = 0.7, Size = 45}
-            }
-            ApplyThumbstick()
-            ApplyJump()
-            
-            local EButton = GetButtonByText("E")
-            if EButton then RestoreOriginal1(EButton) end
-
-            local CButton = GetCOrQButton()
-            if CButton then RestoreOriginal2(CButton) end
-
-            editorGui:Destroy()
-            SendNotification("Controles redefinidos.", 3)
-        end)
-
-        saveBtn.MouseButton1Click:Connect(function()
-            SaveSettings(settings)
-            editorGui:Destroy()
+        salvarBtn.MouseButton1Click:Connect(function()
+            controlSettings = tempSettings
+            saveControlSettings(controlSettings)
+            applyControlSettings()
+            screenGui:Destroy()
             SendNotification("Configurações salvas!", 3)
         end)
     end
 
-    -- ==========================================
-    -- CONSTRUÇÃO DO MENU LATERAL ESQUERDO (PAGE)
-    -- ==========================================
+    local stretchConnection = nil
 
+    -- ==========================================
+    -- CATEGORIA: CAMERA & UI
+    -- ==========================================
     Library:CreateSection(Page, "Camera & UI", "Left")
     local FovVal = 70
     Library:CreateSlider(Page, "Fov Changer", 70, 120, 70, function(v) 
@@ -1875,14 +1640,18 @@ return function(env)
         end)
     end)
 
-    Library:CreateToggle(Page, "Players Cam", false, function(state)
-        setupPlayersCam(state)
-    end)
-
     Library:CreateToggle(Page, "Cam Blur", false, function(state)
         setupCamBlur(state)
     end)
 
+    Library:CreateToggle(Page, "Players Cam", false, function(state)
+        setupPlayersCam(state)
+    end)
+
+
+    -- ==========================================
+    -- CATEGORIA: MOBILE FEATURES
+    -- ==========================================
     Library:CreateSection(Page, "Mobile Features", "Left")
 
     local touchToggle
@@ -1907,13 +1676,17 @@ return function(env)
     end)
 
     Library:CreateToggle(Page, "Hide Buttons", false, function(state)
-        -- Reservado para atualizações futuras
+        -- Implementações futuras para ocultar controles
     end)
 
     Library:CreateButton(Page, "Customize Controls", function()
-        openBrawlControlEditor()
+        openControlEditor()
     end)
 
+
+    -- ==========================================
+    -- CATEGORIA: VISUAL ENVIRONMENT
+    -- ==========================================
     Library:CreateSection(Page, "Visual Environment", "Left")
     
     Library:CreateToggle(Page, "stretch screen", false, function(state) 
@@ -1991,10 +1764,10 @@ return function(env)
         setupBlackoutBypass(state)
     end)
 
-    -- ==========================================
-    -- CONSTRUÇÃO DO MENU LATERAL DIREITO (PAGE)
-    -- ==========================================
 
+    -- ==========================================
+    -- OUTROS RECURSOS ORIGINAIS (SPOOFS)
+    -- ==========================================
     Library:CreateSection(Page, "Visual Name/Level", "Right")
     Library:CreateToggle(Page, "Enable Visuals", false, function(state) 
         spoofVisualsEnabled = state
@@ -2091,6 +1864,9 @@ return function(env)
             SendNotification("Please select a valid player first!", 3)
         end
     end)
+
+    -- Aplicar configurações de posições mobile carregadas na inicialização
+    applyControlSettings()
 
     Library.CreateInput = originalCreateInput
     Library.CreateDropdown = originalCreateDropdown
