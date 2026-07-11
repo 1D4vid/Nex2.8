@@ -106,7 +106,6 @@ return function(env)
     local originalFonts = setmetatable({}, {__mode = "k"})
     local originalLayouts = {}
     local screenGuiActive = false
-    local customControlsEnabled = false
     
     local originalName = LocalPlayer.Name
     local originalDisplayName = LocalPlayer.DisplayName
@@ -1216,6 +1215,7 @@ return function(env)
     -- ==========================================
     local settingsFile = "FTF_MobileControls.json"
     local defaultSettings = {
+        CustomControlsEnabled = false,
         Thumbstick = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 120 },
         Jump = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 70 },
         E = { XS = 0, XO = 0, YS = 0, YO = 0, Size = 55 },
@@ -1230,7 +1230,7 @@ return function(env)
                 loaded = HttpService:JSONDecode(raw)
             end
         end)
-        return loaded
+        return loaded or HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
     end
 
     local controlSettings = loadControlSettings()
@@ -1291,10 +1291,11 @@ return function(env)
     end
 
     local function applyControlSettings()
+        if not controlSettings or not controlSettings.CustomControlsEnabled then return end
         pcall(function()
             local realBtns = getRealButtons()
             for key, btn in pairs(realBtns) do
-                local saved = controlSettings and controlSettings[key]
+                local saved = controlSettings[key]
                 if btn and saved then
                     btn.Position = UDim2.new(saved.XS, saved.XO, saved.YS, saved.YO)
                     btn.Size = UDim2.fromOffset(saved.Size, saved.Size)
@@ -1306,7 +1307,7 @@ return function(env)
     task.spawn(function()
         while true do
             task.wait(1.5)
-            if customControlsEnabled and not screenGuiActive then
+            if not screenGuiActive and controlSettings and controlSettings.CustomControlsEnabled then
                 applyControlSettings()
             end
         end
@@ -1324,24 +1325,25 @@ return function(env)
 
         local bg = Instance.new("Frame")
         bg.Size = UDim2.new(1, 0, 1, 0)
-        bg.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-        bg.BackgroundTransparency = 0.45
+        bg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        bg.BackgroundTransparency = 0.5
         bg.BorderSizePixel = 0
         bg.Parent = screenGui
 
+        -- Barra Superior com Estilo Limpo
         local topBar = Instance.new("Frame")
-        topBar.Size = UDim2.new(1, 0, 0, 75)
+        topBar.Size = UDim2.new(1, 0, 0, 80)
         topBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        topBar.BackgroundTransparency = 0.2
+        topBar.BackgroundTransparency = 0.15
         topBar.BorderSizePixel = 0
         topBar.Parent = bg
 
         local redefinirBtn = Instance.new("TextButton")
         redefinirBtn.Size = UDim2.new(0, 110, 0, 36)
         redefinirBtn.Position = UDim2.new(0, 20, 0.5, -18)
-        redefinirBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        redefinirBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
         redefinirBtn.Text = "Redefinir"
-        redefinirBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+        redefinirBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
         redefinirBtn.Font = Enum.Font.GothamBold
         redefinirBtn.TextSize = 13
         redefinirBtn.Parent = topBar
@@ -1352,7 +1354,7 @@ return function(env)
         local salvarBtn = Instance.new("TextButton")
         salvarBtn.Size = UDim2.new(0, 110, 0, 36)
         salvarBtn.Position = UDim2.new(1, -130, 0.5, -18)
-        salvarBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
+        salvarBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 80)
         salvarBtn.Text = "Salvar"
         salvarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         salvarBtn.Font = Enum.Font.GothamBold
@@ -1362,39 +1364,40 @@ return function(env)
         cornerS.CornerRadius = UDim.new(0, 8)
         cornerS.Parent = salvarBtn
 
-        local centerFrame = Instance.new("Frame")
-        centerFrame.Size = UDim2.new(0, 380, 1, 0)
-        centerFrame.Position = UDim2.new(0.5, -190, 0, 0)
-        centerFrame.BackgroundTransparency = 1
-        centerFrame.Parent = topBar
+        -- Container Central do Slider
+        local sliderContainer = Instance.new("Frame")
+        sliderContainer.Size = UDim2.new(0, 400, 1, 0)
+        sliderContainer.Position = UDim2.new(0.5, -200, 0, 0)
+        sliderContainer.BackgroundTransparency = 1
+        sliderContainer.Parent = topBar
 
         local sliderLabel = Instance.new("TextLabel")
-        sliderLabel.Size = UDim2.new(1, 0, 0, 30)
+        sliderLabel.Size = UDim2.new(1, 0, 0, 35)
         sliderLabel.Position = UDim2.new(0, 0, 0.1, 0)
         sliderLabel.BackgroundTransparency = 1
-        sliderLabel.Text = "Selecione um botão..."
-        sliderLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        sliderLabel.Text = "Selecione um botão"
+        sliderLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
         sliderLabel.Font = Enum.Font.GothamBold
-        sliderLabel.TextSize = 13
-        sliderLabel.Parent = centerFrame
+        sliderLabel.TextSize = 14
+        sliderLabel.Parent = sliderContainer
 
         local sliderBg = Instance.new("Frame")
         sliderBg.Size = UDim2.new(0.8, 0, 0, 6)
-        sliderBg.Position = UDim2.new(0.1, 0, 0.6, 0)
-        sliderBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        sliderBg.Position = UDim2.new(0.1, 0, 0.65, 0)
+        sliderBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         sliderBg.BorderSizePixel = 0
         sliderBg.Visible = false
-        sliderBg.Parent = centerFrame
+        sliderBg.Parent = sliderContainer
 
         local sliderFill = Instance.new("Frame")
         sliderFill.Size = UDim2.new(0.5, 0, 1, 0)
-        sliderFill.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+        sliderFill.BackgroundColor3 = Color3.fromRGB(0, 220, 110)
         sliderFill.BorderSizePixel = 0
         sliderFill.Parent = sliderBg
 
         local sliderBtn = Instance.new("TextButton")
-        sliderBtn.Size = UDim2.new(0, 18, 0, 18)
-        sliderBtn.Position = UDim2.new(0.5, -9, 0.5, -9)
+        sliderBtn.Size = UDim2.new(0, 20, 0, 20)
+        sliderBtn.Position = UDim2.new(0.5, -10, 0.5, -10)
         sliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         sliderBtn.Text = ""
         sliderBtn.Parent = sliderBg
@@ -1409,7 +1412,7 @@ return function(env)
         local function updateSlider(percent)
             percent = math.clamp(percent, 0, 1)
             sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            sliderBtn.Position = UDim2.new(percent, -9, 0.5, -9)
+            sliderBtn.Position = UDim2.new(percent, -10, 0.5, -10)
             
             if activeProxy then
                 local realButton = activeProxy.Parent
@@ -1443,6 +1446,8 @@ return function(env)
             end
         end)
 
+        local tempSettings = HttpService:JSONDecode(HttpService:JSONEncode(controlSettings))
+        
         for key, realButton in pairs(realBtns) do
             if realButton then
                 local old = realButton:FindFirstChild("FTF_DragHandle")
@@ -1452,11 +1457,11 @@ return function(env)
                 handle.Name = "FTF_DragHandle"
                 handle.Size = UDim2.new(1, 0, 1, 0)
                 handle.Position = UDim2.new(0, 0, 0, 0)
-                handle.BackgroundTransparency = 1
+                handle.BackgroundTransparency = 1 -- Totalmente limpo sem poluir
                 handle.BorderSizePixel = 2
-                handle.BorderColor3 = Color3.fromRGB(0, 150, 50)
+                handle.BorderColor3 = Color3.fromRGB(150, 150, 150)
                 handle.Active = true
-                handle.ZIndex = 100 
+                handle.ZIndex = 100
                 handle.Text = ""
                 handle:SetAttribute("ControlKey", key)
                 handle.Parent = realButton
@@ -1480,12 +1485,13 @@ return function(env)
                         activeProxy = handle
                         sliderBg.Visible = true
 
+                        -- Aplica borda verde fina de seleção
                         for _, h in ipairs(activeHandles) do
-                            h.BorderColor3 = Color3.fromRGB(0, 150, 50)
-                            h.BorderSizePixel = 2
+                            h.BorderColor3 = Color3.fromRGB(150, 150, 150)
+                            h.BackgroundTransparency = 1
                         end
-                        handle.BorderColor3 = Color3.fromRGB(0, 255, 100)
-                        handle.BorderSizePixel = 3
+                        handle.BorderColor3 = Color3.fromRGB(0, 255, 120) -- Borda verde
+                        handle.BackgroundTransparency = 0.96
 
                         local currentSize = realButton.Size.X.Offset
                         local minSize, maxSize = 35, 150
@@ -1521,6 +1527,13 @@ return function(env)
                 if btn and original then
                     btn.Position = original.Position
                     btn.Size = original.Size
+                    tempSettings[key] = {
+                        XS = original.Position.X.Scale,
+                        XO = original.Position.X.Offset,
+                        YS = original.Position.Y.Scale,
+                        YO = original.Position.Y.Offset,
+                        Size = original.Size.X.Offset
+                    }
                 end
             end
             if activeProxy then
@@ -1535,7 +1548,9 @@ return function(env)
         end)
 
         salvarBtn.MouseButton1Click:Connect(function()
-            local newSettings = {}
+            local newSettings = {
+                CustomControlsEnabled = controlSettings.CustomControlsEnabled
+            }
             for key, btn in pairs(realBtns) do
                 if btn then
                     newSettings[key] = {
@@ -1616,24 +1631,6 @@ return function(env)
     -- ==========================================
     Library:CreateSection(Page, "Mobile Features", "Left")
 
-    Library:CreateToggle(Page, "Enable Custom Controls", false, function(state)
-        customControlsEnabled = state
-        if state then
-            applyControlSettings()
-        else
-            pcall(function()
-                local realBtns = getRealButtons()
-                for key, btn in pairs(realBtns) do
-                    local original = originalLayouts[key]
-                    if btn and original then
-                        btn.Position = original.Position
-                        btn.Size = original.Size
-                    end
-                end
-            end)
-        end
-    end)
-
     local touchToggle
     touchToggle = Library:CreateToggle(Page, "Touch Sensitivity", false, function(state)
         if state then
@@ -1656,7 +1653,26 @@ return function(env)
     end)
 
     Library:CreateToggle(Page, "Hide Buttons", false, function(state)
-        -- Ocultação de botões futuros
+        -- Ocultação de botões futura
+    end)
+
+    Library:CreateToggle(Page, "Enable Custom Controls", controlSettings.CustomControlsEnabled or false, function(state)
+        controlSettings.CustomControlsEnabled = state
+        saveControlSettings(controlSettings)
+        if state then
+            applyControlSettings()
+        else
+            pcall(function()
+                local realBtns = getRealButtons()
+                for key, btn in pairs(realBtns) do
+                    local original = originalLayouts[key]
+                    if btn and original then
+                        btn.Position = original.Position
+                        btn.Size = original.Size
+                    end
+                end
+            end)
+        end
     end)
 
     Library:CreateButton(Page, "Customize Controls", function()
@@ -1785,7 +1801,7 @@ return function(env)
     end)
     Library:CreateInput(Page, "Fake Name", LocalPlayer.Name, function(val) 
         spoofName = val 
-        if spoofVisualsEnabled THEN updateTrackers() end
+        if spoofVisualsEnabled then updateTrackers() end
     end)
     Library:CreateInput(Page, "Fake Level", "67", function(val) 
         spoofLevel = tonumber(val) or 100 
@@ -1845,7 +1861,8 @@ return function(env)
         end
     end)
 
-    -- Sincroniza posições carregadas na inicialização se estiver ativo
+    -- Salva o estado dos layouts padrões e aplica as posições se estiver ativo
+    backupOriginalLayouts()
     applyControlSettings()
 
     Library.CreateInput = originalCreateInput
