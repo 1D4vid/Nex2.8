@@ -1249,16 +1249,21 @@ return function(env)
 
     local settings = LoadSettings(defaultSettings)
 
+    -- Busca segura dos elementos móveis para evitar congelamentos no computador
     local touchGui, frame, jumpButton, thumbstick
     pcall(function()
-        touchGui = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("TouchGui")
-        frame = touchGui:WaitForChild("TouchControlFrame")
-        jumpButton = frame:WaitForChild("JumpButton")
+        local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+        if playerGui then
+            touchGui = playerGui:WaitForChild("TouchGui", 2)
+            if touchGui then
+                frame = touchGui:WaitForChild("TouchControlFrame", 2)
+                if frame then
+                    jumpButton = frame:WaitForChild("JumpButton", 2)
+                    thumbstick = frame:FindFirstChild("ThumbstickFrame") or frame:FindFirstChild("DynamicThumbstickFrame")
+                end
+            end
+        end
     end)
-
-    if frame then
-        thumbstick = frame:FindFirstChild("ThumbstickFrame") or frame:FindFirstChild("DynamicThumbstickFrame")
-    end
 
     local originalJumpPosition = jumpButton and jumpButton.Position or UDim2.new(0, 0, 0, 0)
     local originalJumpSize = jumpButton and jumpButton.Size or UDim2.new(0, 0, 0, 0)
@@ -1567,28 +1572,28 @@ return function(env)
                 Name = "Analógico",
                 Real = thumbstick,
                 DefaultPos = originalThumbstickPosition,
-                Parent = frame,
+                Parent = overlay,
                 Type = "Thumbstick"
             },
             ["Jump"] = {
                 Name = "Pular",
                 Real = jumpButton,
                 DefaultPos = originalJumpPosition,
-                Parent = frame,
+                Parent = overlay,
                 Type = "Jump"
             },
             ["E"] = {
                 Name = "Botão E",
                 Real = GetButtonByText("E"),
-                DefaultPos = UDim2.new(1, -150, 0.5, -50),
-                Parent = frame,
+                DefaultPos = UDim2.new(0.8, 0, 0.5, 0),
+                Parent = overlay,
                 Type = "E"
             },
             ["C"] = {
                 Name = "Botão C/Q",
                 Real = GetCOrQButton(),
-                DefaultPos = UDim2.new(1, -220, 0.5, 20),
-                Parent = frame,
+                DefaultPos = UDim2.new(0.7, 0, 0.7, 0),
+                Parent = overlay,
                 Type = "C"
             }
         }
@@ -1612,13 +1617,14 @@ return function(env)
                     currentSize = ((settings.CState.Size - 35) / 35) + 1.0
                 end
                 
-                local pct = math.clamp((currentSize - 1) / 1, 0, 1)
+                local pct = math.clamp((currentSize - 1) / 1.5, 0, 1) -- 0.5 a 2.0
                 sliderKnob.Position = UDim2.new(pct, -11, 0.5, -11)
             end
         end
 
         local function makeDraggable(dummy, key)
             local dragging = false
+            local dragInput = nil
             local dragStart = nil
             local startPos = nil
 
@@ -1637,14 +1643,29 @@ return function(env)
                 end
             end)
 
+            dummy.InputChanged:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                    dragInput = input
+                end
+            end)
+
             UserInputService.InputChanged:Connect(function(input)
-                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                if input == dragInput and dragging then
                     local delta = input.Position - dragStart
-                    local parentSize = dummy.Parent and dummy.Parent.AbsoluteSize or Vector2.new(1, 1)
+                    local parent = dummy.Parent
+                    if not parent then return end
                     
+                    local parentSize = parent.AbsoluteSize
                     local newXOffset = startPos.X.Offset + delta.X
                     local newYOffset = startPos.Y.Offset + delta.Y
-                    local finalPos = UDim2.new(startPos.X.Scale, newXOffset, startPos.Y.Scale, newYOffset)
+                    
+                    local newXScale = startPos.X.Scale + (delta.X / parentSize.X)
+                    local newYScale = startPos.Y.Scale + (delta.Y / parentSize.Y)
+                    
+                    newXScale = math.clamp(newXScale, 0.02, 0.98)
+                    newYScale = math.clamp(newYScale, 0.02, 0.98)
+                    
+                    local finalPos = UDim2.fromScale(newXScale, newYScale)
                     dummy.Position = finalPos
 
                     local ctrl = controls[key]
@@ -1653,20 +1674,20 @@ return function(env)
                     end
                     
                     if key == "Thumbstick" then
-                        settings.ThumbstickX = (newXOffset / parentSize.X) * 100
-                        settings.ThumbstickY = (newYOffset / parentSize.Y) * 100
+                        settings.ThumbstickX = newXScale * 100
+                        settings.ThumbstickY = newYScale * 100
                         settings.ThumbstickEnabled = true
                     elseif key == "Jump" then
-                        settings.JumpX = (newXOffset / parentSize.X) * 100
-                        settings.JumpY = (newYOffset / parentSize.Y) * 100
+                        settings.JumpX = newXScale * 100
+                        settings.JumpY = newYScale * 100
                         settings.JumpEnabled = true
                     elseif key == "E" then
-                        settings.EState.X = finalPos.X.Scale + (newXOffset / parentSize.X)
-                        settings.EState.Y = finalPos.Y.Scale + (newYOffset / parentSize.Y)
+                        settings.EState.X = newXScale
+                        settings.EState.Y = newYScale
                         settings.EEnabled = true
                     elseif key == "C" then
-                        settings.CState.X = finalPos.X.Scale + (newXOffset / parentSize.X)
-                        settings.CState.Y = finalPos.Y.Scale + (newYOffset / parentSize.Y)
+                        settings.CState.X = newXScale
+                        settings.CState.Y = newYScale
                         settings.CEnabled = true
                     end
                 end
@@ -1725,6 +1746,7 @@ return function(env)
         end)
 
         local sliderDragging = false
+        local sliderInput = nil
         sliderKnob.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 sliderDragging = true
@@ -1736,13 +1758,19 @@ return function(env)
             end
         end)
 
+        sliderKnob.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                sliderInput = input
+            end
+        end)
+
         UserInputService.InputChanged:Connect(function(input)
-            if sliderDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            if sliderDragging and input == sliderInput then
                 local relativeX = input.Position.X - sliderBg.AbsolutePosition.X
                 local pct = math.clamp(relativeX / sliderBg.AbsoluteSize.X, 0, 1)
                 sliderKnob.Position = UDim2.new(pct, -11, 0.5, -11)
 
-                local scaleFactor = 1.0 + pct
+                local scaleFactor = 0.5 + (pct * 1.5) -- Tamanhos escalados de 0.5x a 2.0x
                 if selectedControl then
                     local ctrl = controls[selectedControl]
                     local dummy = dummyHandles[selectedControl]
@@ -1755,13 +1783,13 @@ return function(env)
                             dummy.Size = UDim2.new(0, originalJumpSize.X.Offset * scaleFactor, 0, originalJumpSize.Y.Offset * scaleFactor)
                         end
                     elseif selectedControl == "E" then
-                        local sizeValue = math.floor(35 + (35 * pct))
+                        local sizeValue = math.floor(35 + (pct * 45))
                         settings.EState.Size = sizeValue
                         settings.EEnabled = true
                         if ctrl.Real then Apply(ctrl.Real, settings.EState) end
                         if dummy then dummy.Size = UDim2.fromOffset(sizeValue, sizeValue) end
                     elseif selectedControl == "C" then
-                        local sizeValue = math.floor(35 + (35 * pct))
+                        local sizeValue = math.floor(35 + (pct * 45))
                         settings.CState.Size = sizeValue
                         settings.CEnabled = true
                         if ctrl.Real then Apply(ctrl.Real, settings.CState) end
