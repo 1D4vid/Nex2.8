@@ -1217,10 +1217,10 @@ return function(env)
     
     local defaultSettings = {
         CustomControlsEnabled = false,
-        Thumbstick = { XS = 0, XO = 50, YS = 1, YO = -200, Size = 120 },
-        Jump = { XS = 1, XO = -120, YS = 1, YO = -120, Size = 70 },
-        E = { XS = 1, XO = -200, YS = 1, YO = -100, Size = 55 },
-        C = { XS = 1, XO = -200, YS = 1, YO = -180, Size = 55 }
+        Thumbstick = { XS = nil, XO = nil, YS = nil, YO = nil, Size = nil },
+        Jump = { XS = nil, XO = nil, YS = nil, YO = nil, Size = nil },
+        E = { XS = nil, XO = nil, YS = nil, YO = nil, Size = nil },
+        C = { XS = nil, XO = nil, YS = nil, YO = nil, Size = nil }
     }
 
     local function loadControlSettings()
@@ -1297,7 +1297,8 @@ return function(env)
             local realBtns = getRealButtons()
             for key, btn in pairs(realBtns) do
                 local saved = controlSettings[key]
-                if btn and saved then
+                -- SÓ aplica as coordenadas se o botão realmente tiver sido salvo com dados válidos
+                if btn and saved and saved.XS then
                     btn.Position = UDim2.new(saved.XS, saved.XO, saved.YS, saved.YO)
                     btn.Size = UDim2.fromOffset(saved.Size, saved.Size)
                 end
@@ -1305,7 +1306,7 @@ return function(env)
         end)
     end
 
-    -- Sincronização constante com loop de segurança (Ativa/Restaura dependendo da toggle)
+    -- Sincronização constante que garante que as posições originais retornem se a toggle for desligada
     task.spawn(function()
         while true do
             task.wait(1.0)
@@ -1316,10 +1317,10 @@ return function(env)
                     pcall(function()
                         local realBtns = getRealButtons()
                         for key, btn in pairs(realBtns) do
-                            local original = originalLayouts[key] or defaultSettings[key]
+                            local original = originalLayouts[key]
                             if btn and original then
-                                btn.Position = original.Position or UDim2.new(original.XS, original.XO, original.YS, original.YO)
-                                btn.Size = original.Size or UDim2.fromOffset(original.Size, original.Size)
+                                btn.Position = original.Position
+                                btn.Size = original.Size
                             end
                         end
                     end)
@@ -1340,104 +1341,96 @@ return function(env)
 
         local bg = Instance.new("Frame")
         bg.Size = UDim2.new(1, 0, 1, 0)
-        bg.BackgroundColor3 = Color3.fromRGB(15, 12, 12)
-        bg.BackgroundTransparency = 0.5
+        bg.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+        bg.BackgroundTransparency = 0.55
         bg.BorderSizePixel = 0
         bg.Parent = screenGui
 
-        -- Painel Superior Central Flutuante (Livre do Menu e Chat do Roblox)
-        local topBar = Instance.new("Frame")
-        topBar.Size = UDim2.new(0, 360, 0, 55)
-        topBar.Position = UDim2.new(0.5, -180, 0, 55) -- Move para baixo para desviar dos botões do Roblox
-        topBar.BackgroundColor3 = Color3.fromRGB(25, 22, 30)
-        topBar.BackgroundTransparency = 0.15
-        topBar.BorderSizePixel = 2
-        topBar.BorderColor3 = Color3.fromRGB(255, 255, 255)
-        topBar.Parent = bg
-        local topCorner = Instance.new("UICorner")
-        topCorner.CornerRadius = UDim.new(0, 10)
-        topCorner.Parent = topBar
+        -- Painel Único Consolidado Centralizado (Estilo Brawl Stars)
+        local controlPanel = Instance.new("Frame")
+        controlPanel.Size = UDim2.new(0, 320, 0, 140)
+        controlPanel.Position = UDim2.new(0.5, -160, 0, 55) -- Livre de colisão com barra do Roblox
+        controlPanel.BackgroundColor3 = Color3.fromRGB(40, 32, 48) -- Tom roxo/plum profundo do Brawl Stars
+        controlPanel.BackgroundTransparency = 0.15
+        controlPanel.BorderSizePixel = 2
+        controlPanel.BorderColor3 = Color3.fromRGB(255, 255, 255) -- Borda branca limpa
+        controlPanel.Parent = bg
 
+        local panelCorner = Instance.new("UICorner")
+        panelCorner.CornerRadius = UDim.new(0, 12)
+        panelCorner.Parent = controlPanel
+
+        -- Botão Redefinir
         local redefinirBtn = Instance.new("TextButton")
-        redefinirBtn.Size = UDim2.new(0, 150, 0, 35)
-        redefinirBtn.Position = UDim2.new(0, 20, 0.5, -17)
-        redefinirBtn.BackgroundColor3 = Color3.fromRGB(45, 40, 50)
+        redefinirBtn.Size = UDim2.new(0, 135, 0, 35)
+        redefinirBtn.Position = UDim2.new(0, 15, 0, 15)
+        redefinirBtn.BackgroundColor3 = Color3.fromRGB(60, 50, 70)
         redefinirBtn.BorderSizePixel = 2
         redefinirBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
         redefinirBtn.Text = "Redefinir"
         redefinirBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         redefinirBtn.Font = Enum.Font.GothamBold
-        redefinirBtn.TextSize = 14
-        redefinirBtn.Parent = topBar
+        redefinirBtn.TextSize = 13
+        redefinirBtn.Parent = controlPanel
         local cornerR = Instance.new("UICorner")
         cornerR.CornerRadius = UDim.new(0, 6)
         cornerR.Parent = redefinirBtn
 
+        -- Botão Salvar
         local salvarBtn = Instance.new("TextButton")
-        salvarBtn.Size = UDim2.new(0, 150, 0, 35)
-        salvarBtn.Position = UDim2.new(1, -170, 0.5, -17)
-        salvarBtn.BackgroundColor3 = Color3.fromRGB(45, 40, 50)
+        salvarBtn.Size = UDim2.new(0, 135, 0, 35)
+        salvarBtn.Position = UDim2.new(1, -150, 0, 15)
+        salvarBtn.BackgroundColor3 = Color3.fromRGB(60, 50, 70)
         salvarBtn.BorderSizePixel = 2
         salvarBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
         salvarBtn.Text = "Salvar"
         salvarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         salvarBtn.Font = Enum.Font.GothamBold
-        salvarBtn.TextSize = 14
-        salvarBtn.Parent = topBar
+        salvarBtn.TextSize = 13
+        salvarBtn.Parent = controlPanel
         local cornerS = Instance.new("UICorner")
         cornerS.CornerRadius = UDim.new(0, 6)
         cornerS.Parent = salvarBtn
 
-        -- Painel Inferior Central Flutuante para o Slider (Fiel ao Brawl Stars)
-        local sizePanel = Instance.new("Frame")
-        sizePanel.Size = UDim2.new(0, 360, 0, 75)
-        sizePanel.Position = UDim2.new(0.5, -180, 1, -100) -- Centralizado na parte inferior livre
-        sizePanel.BackgroundColor3 = Color3.fromRGB(25, 22, 30)
-        sizePanel.BackgroundTransparency = 0.15
-        sizePanel.BorderSizePixel = 2
-        sizePanel.BorderColor3 = Color3.fromRGB(255, 255, 255)
-        sizePanel.Visible = false
-        sizePanel.Parent = bg
-        local panelCorner = Instance.new("UICorner")
-        panelCorner.CornerRadius = UDim.new(0, 10)
-        panelCorner.Parent = sizePanel
-
+        -- Texto TAMANHO
         local sliderLabel = Instance.new("TextLabel")
         sliderLabel.Size = UDim2.new(1, 0, 0, 25)
-        sliderLabel.Position = UDim2.new(0, 0, 0, 5)
+        sliderLabel.Position = UDim2.new(0, 0, 0, 60)
         sliderLabel.BackgroundTransparency = 1
         sliderLabel.Text = "TAMANHO"
         sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         sliderLabel.Font = Enum.Font.GothamBold
-        sliderLabel.TextSize = 13
-        sliderLabel.Parent = sizePanel
+        sliderLabel.TextSize = 12
+        sliderLabel.Parent = controlPanel
 
+        -- Pista do Slider de Tamanho
         local sliderBg = Instance.new("Frame")
-        sliderBg.Size = UDim2.new(0.85, 0, 0, 10)
-        sliderBg.Position = UDim2.new(0.075, 0, 0.6, 0)
-        sliderBg.BackgroundColor3 = Color3.fromRGB(45, 40, 50)
+        sliderBg.Size = UDim2.new(0.9, 0, 0, 12)
+        sliderBg.Position = UDim2.new(0.05, 0, 0, 95)
+        sliderBg.BackgroundColor3 = Color3.fromRGB(55, 45, 65)
         sliderBg.BorderSizePixel = 2
         sliderBg.BorderColor3 = Color3.fromRGB(255, 255, 255)
-        sliderBg.Parent = sizePanel
+        sliderBg.Parent = controlPanel
         local bgCorner = Instance.new("UICorner")
         bgCorner.CornerRadius = UDim.new(1, 0)
         bgCorner.Parent = sliderBg
 
         local sliderFill = Instance.new("Frame")
         sliderFill.Size = UDim2.new(0.5, 0, 1, 0)
-        sliderFill.BackgroundColor3 = Color3.fromRGB(100, 85, 120)
+        sliderFill.BackgroundColor3 = Color3.fromRGB(115, 95, 130)
         sliderFill.BorderSizePixel = 0
         sliderFill.Parent = sliderBg
         local fillCorner = Instance.new("UICorner")
         fillCorner.CornerRadius = UDim.new(1, 0)
         fillCorner.Parent = sliderFill
 
+        -- Knob Redondo Branco com Borda Preta
         local sliderBtn = Instance.new("TextButton")
-        sliderBtn.Size = UDim2.new(0, 24, 0, 24) -- Botão redondo branco com borda preta
-        sliderBtn.Position = UDim2.new(0.5, -12, 0.5, -12)
+        sliderBtn.Size = UDim2.new(0, 26, 0, 24)
+        sliderBtn.Position = UDim2.new(0.5, -13, 0.5, -12)
         sliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         sliderBtn.BorderSizePixel = 2
-        sliderBtn.BorderColor3 = Color3.fromRGB(0, 0, 0)
+        sliderBtn.BorderColor3 = Color3.fromRGB(30, 30, 30)
         sliderBtn.Text = ""
         sliderBtn.Parent = sliderBg
         local sliderBtnCorner = Instance.new("UICorner")
@@ -1451,7 +1444,7 @@ return function(env)
         local function updateSlider(percent)
             percent = math.clamp(percent, 0, 1)
             sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            sliderBtn.Position = UDim2.new(percent, -12, 0.5, -12)
+            sliderBtn.Position = UDim2.new(percent, -13, 0.5, -12)
             
             if activeProxy then
                 local realButton = activeProxy.Parent
@@ -1496,8 +1489,8 @@ return function(env)
                 handle.Name = "FTF_DragHandle"
                 handle.Size = UDim2.new(1, 0, 1, 0)
                 handle.Position = UDim2.new(0, 0, 0, 0)
-                handle.BackgroundTransparency = 1 -- Sem preenchimento visual para não poluir
-                handle.BorderSizePixel = 3 -- Borda mais visível
+                handle.BackgroundTransparency = 1
+                handle.BorderSizePixel = 3
                 handle.BorderColor3 = Color3.fromRGB(150, 150, 150)
                 handle.Active = true
                 handle.ZIndex = 100
@@ -1522,14 +1515,13 @@ return function(env)
                         startPos = realButton.Position
 
                         activeProxy = handle
-                        sizePanel.Visible = true
 
-                        -- Aplica borda verde neon limpa de seleção
+                        -- Borda fina verde neon de seleção
                         for _, h in ipairs(activeHandles) do
                             h.BorderColor3 = Color3.fromRGB(150, 150, 150)
                             h.BackgroundTransparency = 1
                         end
-                        handle.BorderColor3 = Color3.fromRGB(0, 255, 120) -- Borda verde pura
+                        handle.BorderColor3 = Color3.fromRGB(0, 255, 120) -- Verde Brawl Stars
                         handle.BackgroundTransparency = 0.97
 
                         local currentSize = realButton.Size.X.Offset
@@ -1562,17 +1554,10 @@ return function(env)
 
         redefinirBtn.MouseButton1Click:Connect(function()
             for key, btn in pairs(realBtns) do
-                local original = originalLayouts[key] or defaultSettings[key]
+                local original = originalLayouts[key]
                 if btn and original then
-                    btn.Position = original.Position or UDim2.new(original.XS, original.XO, original.YS, original.YO)
-                    btn.Size = original.Size or UDim2.fromOffset(original.Size, original.Size)
-                    tempSettings[key] = {
-                        XS = btn.Position.X.Scale,
-                        XO = btn.Position.X.Offset,
-                        YS = btn.Position.Y.Scale,
-                        YO = btn.Position.Y.Offset,
-                        Size = btn.Size.X.Offset
-                    }
+                    btn.Position = original.Position
+                    btn.Size = original.Size
                 end
             end
             if activeProxy then
@@ -1609,7 +1594,7 @@ return function(env)
             end
             screenGui:Destroy()
             screenGuiActive = false
-            SendNotification("Controles customizados salvos com sucesso!", 3)
+            SendNotification("Controles salvos com sucesso!", 3)
         end)
     end
 
@@ -1695,7 +1680,7 @@ return function(env)
         -- Ocultação de botões futura
     end)
 
-    -- A toggle agora reverte ou ativa de forma funcional em tempo real
+    -- Sincroniza a ativação funcional em tempo real e reverte ao original quando desativada
     Library:CreateToggle(Page, "Enable Custom Controls", controlSettings.CustomControlsEnabled or false, function(state)
         controlSettings.CustomControlsEnabled = state
         saveControlSettings(controlSettings)
@@ -1705,17 +1690,17 @@ return function(env)
             pcall(function()
                 local realBtns = getRealButtons()
                 for key, btn in pairs(realBtns) do
-                    local original = originalLayouts[key] or defaultSettings[key]
+                    local original = originalLayouts[key]
                     if btn and original then
-                        btn.Position = original.Position or UDim2.new(original.XS, original.XO, original.YS, original.YO)
-                        btn.Size = original.Size or UDim2.fromOffset(original.Size, original.Size)
+                        btn.Position = original.Position
+                        btn.Size = original.Size
                     end
                 end
             end)
         end
     end)
 
-    -- O botão agora impede que a customização ocorra com a toggle desativada
+    -- Bloqueia a abertura e alerta se a toggle estiver desativada
     Library:CreateButton(Page, "Customize Controls", function()
         if not controlSettings.CustomControlsEnabled then
             SendNotification("Ative 'Enable Custom Controls' primeiro para poder modificar os botões!", 4)
