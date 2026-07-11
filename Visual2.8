@@ -106,6 +106,7 @@ return function(env)
     local originalFonts = setmetatable({}, {__mode = "k"})
     local originalLayouts = {}
     local screenGuiActive = false
+    local customControlsEnabled = false
     
     local originalName = LocalPlayer.Name
     local originalDisplayName = LocalPlayer.DisplayName
@@ -1305,7 +1306,7 @@ return function(env)
     task.spawn(function()
         while true do
             task.wait(1.5)
-            if not screenGuiActive then
+            if customControlsEnabled and not screenGuiActive then
                 applyControlSettings()
             end
         end
@@ -1323,92 +1324,78 @@ return function(env)
 
         local bg = Instance.new("Frame")
         bg.Size = UDim2.new(1, 0, 1, 0)
-        bg.BackgroundColor3 = Color3.fromRGB(15, 12, 12)
-        bg.BackgroundTransparency = 0.5
+        bg.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+        bg.BackgroundTransparency = 0.45
         bg.BorderSizePixel = 0
         bg.Parent = screenGui
 
         local topBar = Instance.new("Frame")
-        topBar.Size = UDim2.new(1, 0, 0, 60)
-        topBar.BackgroundColor3 = Color3.fromRGB(30, 8, 8)
-        topBar.BackgroundTransparency = 0.15
+        topBar.Size = UDim2.new(1, 0, 0, 75)
+        topBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        topBar.BackgroundTransparency = 0.2
         topBar.BorderSizePixel = 0
         topBar.Parent = bg
 
-        local title = Instance.new("TextLabel")
-        title.Size = UDim2.new(0, 300, 1, 0)
-        title.Position = UDim2.new(0.5, -150, 0, 0)
-        title.BackgroundTransparency = 1
-        title.Text = "PERSONALIZAR CONTROLES"
-        title.TextColor3 = Color3.fromRGB(255, 210, 210)
-        title.Font = Enum.Font.GothamBold
-        title.TextSize = 16
-        title.Parent = topBar
-
         local redefinirBtn = Instance.new("TextButton")
-        redefinirBtn.Size = UDim2.new(0, 120, 0, 36)
-        redefinirBtn.Position = UDim2.new(0.5, -280, 0.5, -18)
-        redefinirBtn.BackgroundColor3 = Color3.fromRGB(95, 28, 28)
+        redefinirBtn.Size = UDim2.new(0, 110, 0, 36)
+        redefinirBtn.Position = UDim2.new(0, 20, 0.5, -18)
+        redefinirBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         redefinirBtn.Text = "Redefinir"
-        redefinirBtn.TextColor3 = Color3.fromRGB(255, 220, 220)
+        redefinirBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
         redefinirBtn.Font = Enum.Font.GothamBold
-        redefinirBtn.TextSize = 14
+        redefinirBtn.TextSize = 13
         redefinirBtn.Parent = topBar
         local cornerR = Instance.new("UICorner")
         cornerR.CornerRadius = UDim.new(0, 8)
         cornerR.Parent = redefinirBtn
 
         local salvarBtn = Instance.new("TextButton")
-        salvarBtn.Size = UDim2.new(0, 120, 0, 36)
-        salvarBtn.Position = UDim2.new(0.5, 160, 0.5, -18)
-        salvarBtn.BackgroundColor3 = Color3.fromRGB(120, 20, 20)
+        salvarBtn.Size = UDim2.new(0, 110, 0, 36)
+        salvarBtn.Position = UDim2.new(1, -130, 0.5, -18)
+        salvarBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 60)
         salvarBtn.Text = "Salvar"
-        salvarBtn.TextColor3 = Color3.fromRGB(255, 220, 220)
+        salvarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         salvarBtn.Font = Enum.Font.GothamBold
-        salvarBtn.TextSize = 14
+        salvarBtn.TextSize = 13
         salvarBtn.Parent = topBar
         local cornerS = Instance.new("UICorner")
         cornerS.CornerRadius = UDim.new(0, 8)
         cornerS.Parent = salvarBtn
 
-        local sizePanel = Instance.new("Frame")
-        sizePanel.Size = UDim2.new(0, 340, 0, 100)
-        sizePanel.Position = UDim2.new(0.5, -170, 1, -120)
-        sizePanel.BackgroundColor3 = Color3.fromRGB(45, 14, 14)
-        sizePanel.BorderSizePixel = 1
-        sizePanel.BorderColor3 = Color3.fromRGB(110, 30, 30)
-        sizePanel.Visible = false
-        sizePanel.Parent = bg
-        local panelCorner = Instance.new("UICorner")
-        panelCorner.CornerRadius = UDim.new(0, 10)
-        panelCorner.Parent = sizePanel
+        local centerFrame = Instance.new("Frame")
+        centerFrame.Size = UDim2.new(0, 380, 1, 0)
+        centerFrame.Position = UDim2.new(0.5, -190, 0, 0)
+        centerFrame.BackgroundTransparency = 1
+        centerFrame.Parent = topBar
 
         local sliderLabel = Instance.new("TextLabel")
-        sliderLabel.Size = UDim2.new(1, 0, 0, 35)
+        sliderLabel.Size = UDim2.new(1, 0, 0, 30)
+        sliderLabel.Position = UDim2.new(0, 0, 0.1, 0)
         sliderLabel.BackgroundTransparency = 1
-        sliderLabel.Text = "Tamanho: 100px"
-        sliderLabel.TextColor3 = Color3.fromRGB(255, 210, 210)
+        sliderLabel.Text = "Selecione um botão..."
+        sliderLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
         sliderLabel.Font = Enum.Font.GothamBold
-        sliderLabel.TextSize = 14
-        sliderLabel.Parent = sizePanel
+        sliderLabel.TextSize = 13
+        sliderLabel.Parent = centerFrame
 
         local sliderBg = Instance.new("Frame")
-        sliderBg.Size = UDim2.new(0.8, 0, 0, 8)
-        sliderBg.Position = UDim2.new(0.1, 0, 0.65, 0)
-        sliderBg.BackgroundColor3 = Color3.fromRGB(35, 10, 10)
+        sliderBg.Size = UDim2.new(0.8, 0, 0, 6)
+        sliderBg.Position = UDim2.new(0.1, 0, 0.6, 0)
+        sliderBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         sliderBg.BorderSizePixel = 0
-        sliderBg.Parent = sizePanel
+        sliderBg.Visible = false
+        sliderBg.Parent = centerFrame
 
         local sliderFill = Instance.new("Frame")
         sliderFill.Size = UDim2.new(0.5, 0, 1, 0)
-        sliderFill.BackgroundColor3 = Color3.fromRGB(120, 20, 20)
+        sliderFill.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
         sliderFill.BorderSizePixel = 0
         sliderFill.Parent = sliderBg
 
         local sliderBtn = Instance.new("TextButton")
-        sliderBtn.Size = UDim2.new(0, 22, 0, 22)
-        sliderBtn.Position = UDim2.new(0.5, -11, 0.5, -11)
-        sliderBtn.BackgroundColor3 = Color3.fromRGB(255, 220, 220)
+        sliderBtn.Size = UDim2.new(0, 18, 0, 18)
+        sliderBtn.Position = UDim2.new(0.5, -9, 0.5, -9)
+        sliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         sliderBtn.Text = ""
         sliderBtn.Parent = sliderBg
         local sliderBtnCorner = Instance.new("UICorner")
@@ -1422,7 +1409,7 @@ return function(env)
         local function updateSlider(percent)
             percent = math.clamp(percent, 0, 1)
             sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            sliderBtn.Position = UDim2.new(percent, -11, 0.5, -11)
+            sliderBtn.Position = UDim2.new(percent, -9, 0.5, -9)
             
             if activeProxy then
                 local realButton = activeProxy.Parent
@@ -1456,7 +1443,6 @@ return function(env)
             end
         end)
 
-        -- Criar as alças de arraste de forma relativa como filhos dos botões reais do FTF
         for key, realButton in pairs(realBtns) do
             if realButton then
                 local old = realButton:FindFirstChild("FTF_DragHandle")
@@ -1466,12 +1452,11 @@ return function(env)
                 handle.Name = "FTF_DragHandle"
                 handle.Size = UDim2.new(1, 0, 1, 0)
                 handle.Position = UDim2.new(0, 0, 0, 0)
-                handle.BackgroundTransparency = 0.8
-                handle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                handle.BackgroundTransparency = 1
                 handle.BorderSizePixel = 2
-                handle.BorderColor3 = Color3.fromRGB(150, 150, 150)
+                handle.BorderColor3 = Color3.fromRGB(0, 150, 50)
                 handle.Active = true
-                handle.ZIndex = 100 -- Sobrepõe o botão nativo perfeitamente
+                handle.ZIndex = 100 
                 handle.Text = ""
                 handle:SetAttribute("ControlKey", key)
                 handle.Parent = realButton
@@ -1493,15 +1478,14 @@ return function(env)
                         startPos = realButton.Position
 
                         activeProxy = handle
-                        sizePanel.Visible = true
+                        sliderBg.Visible = true
 
-                        -- Destaca com a borda azul exatamente como na imagem
                         for _, h in ipairs(activeHandles) do
-                            h.BorderColor3 = Color3.fromRGB(150, 150, 150)
-                            h.BackgroundTransparency = 0.8
+                            h.BorderColor3 = Color3.fromRGB(0, 150, 50)
+                            h.BorderSizePixel = 2
                         end
-                        handle.BorderColor3 = Color3.fromRGB(0, 162, 255)
-                        handle.BackgroundTransparency = 0.55
+                        handle.BorderColor3 = Color3.fromRGB(0, 255, 100)
+                        handle.BorderSizePixel = 3
 
                         local currentSize = realButton.Size.X.Offset
                         local minSize, maxSize = 35, 150
@@ -1631,6 +1615,24 @@ return function(env)
     -- CATEGORIA: MOBILE FEATURES
     -- ==========================================
     Library:CreateSection(Page, "Mobile Features", "Left")
+
+    Library:CreateToggle(Page, "Enable Custom Controls", false, function(state)
+        customControlsEnabled = state
+        if state then
+            applyControlSettings()
+        else
+            pcall(function()
+                local realBtns = getRealButtons()
+                for key, btn in pairs(realBtns) do
+                    local original = originalLayouts[key]
+                    if btn and original then
+                        btn.Position = original.Position
+                        btn.Size = original.Size
+                    end
+                end
+            end)
+        end
+    end)
 
     local touchToggle
     touchToggle = Library:CreateToggle(Page, "Touch Sensitivity", false, function(state)
@@ -1783,7 +1785,7 @@ return function(env)
     end)
     Library:CreateInput(Page, "Fake Name", LocalPlayer.Name, function(val) 
         spoofName = val 
-        if spoofVisualsEnabled then updateTrackers() end
+        if spoofVisualsEnabled THEN updateTrackers() end
     end)
     Library:CreateInput(Page, "Fake Level", "67", function(val) 
         spoofLevel = tonumber(val) or 100 
@@ -1843,7 +1845,7 @@ return function(env)
         end
     end)
 
-    -- Sincroniza posições carregadas na inicialização
+    -- Sincroniza posições carregadas na inicialização se estiver ativo
     applyControlSettings()
 
     Library.CreateInput = originalCreateInput
