@@ -6,19 +6,6 @@ return function(env)
     local Workspace = env.Workspace
     local ReplicatedStorage = env.ReplicatedStorage
 
-    local game = game
-    local workspace = workspace
-    local type = type
-    local pcall = pcall
-    local coroutine = coroutine
-    local string = string
-    local table = table
-    local ipairs = ipairs
-    local pairs = pairs
-    local next = next
-    local select = select
-    local getgenv = getgenv
-
     local GuiService = game:GetService("GuiService")
     local TeleportService = game:GetService("TeleportService")
     local TweenService = game:GetService("TweenService")
@@ -28,13 +15,12 @@ return function(env)
     local RemoteEvent = ReplicatedStorage:WaitForChild("RemoteEvent", 1)
 
     local Vector3_new = Vector3.new
-    local Vector3_zero = Vector3.zero
     local CFrame_new = CFrame.new
-    local CFrame_Angles = CFrame.Angles
     local task_wait = task.wait
     local task_spawn = task.spawn
+    local ipairs = ipairs
+    local pairs = pairs
     local math_floor = math.floor
-    local math_rad = math.rad
     local tick = tick
 
     local function SendNotification(title, text, duration)
@@ -217,9 +203,7 @@ return function(env)
             return fly_cachedBeast
         end
 
-        local playersList = Players:GetPlayers()
-        for i = 1, #playersList do
-            local v = playersList[i]
+        for _, v in ipairs(Players:GetPlayers()) do
             if checkIsBeast(v) then
                 fly_cachedBeast = v
                 return v
@@ -235,9 +219,7 @@ return function(env)
     end
 
     local function ObterMapaAtual()
-        local children = Workspace:GetChildren()
-        for i = 1, #children do
-            local obj = children[i]
+        for _, obj in pairs(Workspace:GetChildren()) do
             if obj:FindFirstChild("FreezePod") or obj:FindFirstChild("ComputerTable") then
                 return obj
             end
@@ -247,9 +229,7 @@ return function(env)
 
     local function ObterTuboVazio(mapa)
         if not mapa then return nil end
-        local children = mapa:GetChildren()
-        for i = 1, #children do
-            local obj = children[i]
+        for _, obj in pairs(mapa:GetChildren()) do
             if obj.Name == "FreezePod" then
                 local trigger = obj:FindFirstChild("PodTrigger", true)
                 if trigger then
@@ -358,7 +338,7 @@ return function(env)
         local CurrentComputer = nil
 
         local function GetComputer(Computer)
-            if TaskGood() and Computer.Screen.BrickColor ~= BrickColor_new("Dark green") and not OnComputer then
+            if TaskGood() and Computer.Screen.BrickColor ~= BrickColor.new("Dark green") and not OnComputer then
                 OnComputer = true
                 local Prioritize = FlyConfig.TriggerPrioritization
                 local Triggers = {}
@@ -373,7 +353,7 @@ return function(env)
 
                 for i = 1, #Triggers do
                     local v = Triggers[i]
-                    if v and TaskGood() and v.ActionSign.Value == 20 and not fly_IsTriggerOccupied(v) and Computer.Screen.BrickColor ~= BrickColor_new("Dark green") and ChosenComputer == Computer then
+                    if v and TaskGood() and v.ActionSign.Value == 20 and not fly_IsTriggerOccupied(v) and Computer.Screen.BrickColor ~= BrickColor.new("Dark green") and ChosenComputer == Computer then
                         local Distance = (LocalPlayer.Character.HumanoidRootPart.Position - v.Position).Magnitude
 
                         if Distance / FlyConfig.FarmTweenSpeed < FlyConfig.WaitTweenFast then
@@ -388,7 +368,7 @@ return function(env)
                         SendNotification("Objective", "Moving to computer table", 2.5)
                         GoTween(v)
 
-                        if Computer.Screen.BrickColor == BrickColor_new("Dark green") then CurrentComputer = nil; OnComputer = false; return end
+                        if Computer.Screen.BrickColor == BrickColor.new("Dark green") then CurrentComputer = nil; OnComputer = false; return end
                         if not TaskGood() then CurrentComputer = nil; OnComputer = false; return end
                         if v.ActionSign.Value ~= 20 or (ChosenComputer ~= Computer and ChosenComputer ~= nil) then continue end
 
@@ -458,7 +438,7 @@ return function(env)
                                 SendNotification("Error", "Failed to start hacking. Re-trying.", 3)
                                 return
                             end
-                        until not TaskGood() or Computer.Screen.BrickColor == BrickColor_new("Dark green") or (ChosenComputer ~= Computer and ChosenComputer ~= nil)
+                        until not TaskGood() or Computer.Screen.BrickColor == BrickColor.new("Dark green") or (ChosenComputer ~= Computer and ChosenComputer ~= nil)
                     end
                 end
                 CurrentComputer = nil
@@ -485,7 +465,7 @@ return function(env)
                     LeastTriggers = 4
                     Closest = math.huge
 
-                    if ChosenComputer and ChosenComputer.Screen.BrickColor == BrickColor_new("Dark green") then
+                    if ChosenComputer and ChosenComputer.Screen.BrickColor == BrickColor.new("Dark green") then
                         SendNotification("Completed", "Computer fully hacked!", 3)
                         ChosenComputer = nil
                     end
@@ -506,11 +486,11 @@ return function(env)
                             end
                         end
 
-                        if v.Screen.BrickColor ~= BrickColor_new("Dark green") then
+                        if v.Screen.BrickColor ~= BrickColor.new("Dark green") then
                             ComputersLeft = ComputersLeft + 1
                         end
 
-                        if v.Screen.BrickColor ~= BrickColor_new("Dark green") and not FoundV and fly_IsThereChar() then
+                        if v.Screen.BrickColor ~= BrickColor.new("Dark green") and not FoundV and fly_IsThereChar() then
                             local Triggers = { v:FindFirstChild("ComputerTrigger3"), v:FindFirstChild("ComputerTrigger2"), v:FindFirstChild("ComputerTrigger1") }
                             local Distance = (Triggers[1].Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
                             local AmtTriggers = 3
@@ -938,7 +918,7 @@ return function(env)
                 end
 
                 while getgenv().AutoHelpTeleport do
-                    task_wait(0.05)
+                    task.wait(0.05)
 
                     local meChar = LocalPlayer.Character
                     local meRoot = getRoot(meChar)
@@ -954,9 +934,7 @@ return function(env)
                     if myRagdoll and myRagdoll.Value then continue end
                     if myCaptured and myCaptured.Value then continue end
 
-                    local playersList = Players:GetPlayers()
-                    for i = 1, #playersList do
-                        local alvo = playersList[i]
+                    for _, alvo in pairs(Players:GetPlayers()) do
                         if alvo == LocalPlayer or helping then continue end
 
                         local alvoStats = alvo:FindFirstChild("TempPlayerStatsModule")
@@ -971,10 +949,10 @@ return function(env)
                                 oldCFrame = meRoot.CFrame
 
                                 repeat
-                                    task_wait(0.05)
+                                    task.wait(0.05)
                                     local atualRoot = getRoot(LocalPlayer.Character)
                                     if atualRoot then
-                                        atualRoot.CFrame = alvoRoot.CFrame * CFrame_new(0, -4.5, 0) * CFrame_Angles(math_rad(90), 0, 0)
+                                        atualRoot.CFrame = alvoRoot.CFrame * CFrame.new(0, -4.5, 0) * CFrame.Angles(math.rad(90), 0, 0)
                                     end
                                     RemoteEvent:FireServer("Input", "Action", true)
                                     
@@ -1096,9 +1074,8 @@ return function(env)
 
         if state then
             SendNotification("Moderator Alert/Kick Enabled", 3)
-            local playersList = Players:GetPlayers()
-            for i = 1, #playersList do
-                task.spawn(checkPlayer, playersList[i])
+            for _, player in ipairs(Players:GetPlayers()) do
+                task.spawn(checkPlayer, player)
             end
             if not ModAddedConnection then
                 ModAddedConnection = Players.PlayerAdded:Connect(function(player)
@@ -1127,22 +1104,20 @@ return function(env)
         _G.AntiAfkConnection = LocalPlayer.Idled:Connect(function()
             if _G.AntiAfkEnabled then
                 VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2_new(0,0))
+                VirtualUser:ClickButton2(Vector2.new(0,0))
             end
         end)
     end)
 
     task.spawn(function()
         while true do
-            task_wait(0.5) 
+            task.wait(0.5) 
             if getgenv().AutoWinBeast and IsGameActive and IsGameActive.Value then
                 pcall(function()
                     local char = LocalPlayer.Character
                     local backpack = LocalPlayer:FindFirstChild("Backpack")
                     if char and backpack then
-                        local tools = backpack:GetChildren()
-                        for i = 1, #tools do
-                            local tool = tools[i]
+                        for _, tool in ipairs(backpack:GetChildren()) do
                             if tool:IsA("Tool") and (tool.Name:match("Hammer") or tool.Name:match("Mallet") or tool:FindFirstChild("HammerEvent")) then
                                 local hum = char:FindFirstChildOfClass("Humanoid")
                                 if hum then
@@ -1159,7 +1134,7 @@ return function(env)
 
     task.spawn(function()
         while true do
-            task_wait(0.1) 
+            task.wait(0.1) 
             if getgenv().AutoWinBeast then
                 pcall(function()
                     if not IsGameActive or not IsGameActive.Value or not LocalPlayer:FindFirstChild("TempPlayerStatsModule") then return end
@@ -1168,12 +1143,10 @@ return function(env)
                         local mapa = ObterMapaAtual()
                         if mapa then
                             local todosHackeados = true
-                            local children = mapa:GetChildren()
-                            for i = 1, #children do
-                                local obj = children[i]
+                            for _, obj in pairs(mapa:GetChildren()) do
                                 if obj.Name == "ComputerTable" then
                                     local screen = obj:FindFirstChild("Screen")
-                                    if screen and screen.BrickColor ~= BrickColor_new("Dark green") then
+                                    if screen and screen.BrickColor ~= BrickColor.new("Dark green") then
                                         todosHackeados = false
                                         break
                                     end
@@ -1193,9 +1166,7 @@ return function(env)
                     local AlvoAtual = nil
                     local RaizAlvo = nil
                     
-                    local playersList = Players:GetPlayers()
-                    for i = 1, #playersList do
-                        local alvo = playersList[i]
+                    for _, alvo in pairs(Players:GetPlayers()) do
                         if alvo ~= LocalPlayer and alvo.Character then
                             local Stats = alvo:FindFirstChild("TempPlayerStatsModule")
                             if Stats and Stats:FindFirstChild("Captured") and not Stats.Captured.Value then
@@ -1210,8 +1181,8 @@ return function(env)
                     end
                     
                     if RaizAlvo and LocalPlayer.Character then
-                        LocalPlayer.Character:PivotTo(RaizAlvo.CFrame * CFrame_new(0, 0, 1.5))
-                        MinhaRaiz.Velocity = Vector3_zero 
+                        LocalPlayer.Character:PivotTo(RaizAlvo.CFrame * CFrame.new(0, 0, 1.5))
+                        MinhaRaiz.Velocity = Vector3.zero 
                     end
                 end)
             end
@@ -1220,7 +1191,7 @@ return function(env)
 
     task.spawn(function()
         while true do
-            task_wait(0.1)
+            task.wait(0.1)
             if getgenv().AutoWinBeast then
                 pcall(function()
                     if not IsGameActive or not IsGameActive.Value or not LocalPlayer:FindFirstChild("TempPlayerStatsModule") then return end
@@ -1231,9 +1202,7 @@ return function(env)
                     
                     if not MeuEventoMarreta or not MinhaRaiz then return end
                     
-                    local playersList = Players:GetPlayers()
-                    for i = 1, #playersList do
-                        local alvo = playersList[i]
+                    for _, alvo in pairs(Players:GetPlayers()) do
                         if alvo ~= LocalPlayer and alvo.Character then
                             local Stats = alvo:FindFirstChild("TempPlayerStatsModule")
                             if not Stats then continue end
@@ -1264,7 +1233,7 @@ return function(env)
 
     task.spawn(function()
         while true do
-            task_wait(0.1)
+            task.wait(0.1)
             if getgenv().AutoWinBeast then
                 pcall(function()
                     if not IsGameActive or not IsGameActive.Value or not LocalPlayer:FindFirstChild("TempPlayerStatsModule") then return end
@@ -1274,9 +1243,7 @@ return function(env)
                     
                     local mapa = ObterMapaAtual()
                     
-                    local playersList = Players:GetPlayers()
-                    for i = 1, #playersList do
-                        local alvo = playersList[i]
+                    for _, alvo in pairs(Players:GetPlayers()) do
                         if alvo ~= LocalPlayer and alvo.Character then
                             local Stats = alvo:FindFirstChild("TempPlayerStatsModule")
                             if not Stats then continue end
@@ -1288,7 +1255,7 @@ return function(env)
                                 local tuboVazio = ObterTuboVazio(mapa)
                                 if tuboVazio then
                                     RemoteEvent:FireServer("Input", "Trigger", true, tuboVazio)
-                                    task_wait(0.05)
+                                    task.wait(0.05)
                                     RemoteEvent:FireServer("Input", "Action", true)
                                 end
                             end
@@ -1320,7 +1287,7 @@ return function(env)
 
             if tempoDeEspera > 0.5 then
                 Alertar("Anti-Cheat Bypass", "Calculating jump... Waiting " .. string.format("%.1f", tempoDeEspera) .. "s", tempoDeEspera)
-                hrp.Velocity = Vector3_zero
+                hrp.Velocity = Vector3.new(0,0,0)
                 
                 local elapsed = 0
                 while elapsed < tempoDeEspera do
@@ -1333,7 +1300,7 @@ return function(env)
             if not PossoAgir() then return false end
 
             hrp.CFrame = destinoCFrame
-            hrp.Velocity = Vector3_zero
+            hrp.Velocity = Vector3.new(0, 0, 0)
             
             local elapsed2 = 0
             while elapsed2 < 1.2 do
@@ -1382,9 +1349,7 @@ return function(env)
         end
 
         local function TemGenteNoPC(pcPos)
-            local playersList = Players:GetPlayers()
-            for i = 1, #playersList do
-                local player = playersList[i]
+            for _, player in pairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
                     local raiz = player.Character:FindFirstChild("HumanoidRootPart")
                     if raiz and (raiz.Position - pcPos).Magnitude <= 6 then 
@@ -1402,9 +1367,7 @@ return function(env)
             local pcMaisPerto = nil
             local menorDistancia = math.huge
 
-            local descendants = Workspace:GetDescendants()
-            for i = 1, #descendants do
-                local obj = descendants[i]
+            for _, obj in pairs(Workspace:GetDescendants()) do
                 if obj.Name == "ComputerTable" then
                     local tela = obj:FindFirstChild("Screen")
                     local teclado = obj:FindFirstChild("Keyboard") or obj:FindFirstChildWhichIsA("BasePart")
@@ -1436,8 +1399,8 @@ return function(env)
 
         local function IniciarRotinaDeFarm()
             task.spawn(function()
-                repeat task_wait(0.1) until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                task_wait(1) 
+                repeat task.wait(0.1) until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                task.wait(1) 
                 
                 if ChecarSeSouBeast() then
                     getgenv().SouBeastNessaRodada = true
@@ -1449,7 +1412,7 @@ return function(env)
                 Alertar("NexVoid System", "Targets detected. Farm started.", 3)
                 
                 while getgenv().FarmRodando and getgenv().NexVoidLigado do
-                    task_wait(0.2) 
+                    task.wait(0.2) 
                     
                     if getgenv().EscapouDaPartida then break end
                     if not PossoAgir() then continue end
@@ -1466,7 +1429,7 @@ return function(env)
                         end
 
                         if pcCFrame then
-                            local sucesso = EsperarETeleportar(pcCFrame * CFrame_new(0, 3, -3))
+                            local sucesso = EsperarETeleportar(pcCFrame * CFrame.new(0, 3, -3))
                             
                             if sucesso then
                                 while getgenv().FarmRodando and not getgenv().EscapouDaPartida do
@@ -1480,17 +1443,15 @@ return function(env)
                                     
                                     local char = LocalPlayer.Character
                                     if char and char:FindFirstChild("HumanoidRootPart") then
-                                        char.HumanoidRootPart.Velocity = Vector3_zero
+                                        char.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
                                     end
-                                    task_wait(0.1) 
+                                    task.wait(0.1) 
                                 end
                             end
                         end
                         
                     else
-                        local descendants = Workspace:GetDescendants()
-                        for i = 1, #descendants do
-                            local porta = descendants[i]
+                        for _, porta in pairs(Workspace:GetDescendants()) do
                             if porta.Name == "ExitDoor" then
                                 local painel = porta:FindFirstChild("Light", true) or porta:FindFirstChild("Lock", true) or porta:FindFirstChildWhichIsA("BasePart")
                                 local eventoPorta = porta:FindFirstChild("Event", true) or porta:FindFirstChildWhichIsA("RemoteEvent", true)
@@ -1499,7 +1460,7 @@ return function(env)
                                     
                                     Alertar("Target Locked", "Moving to Exit Door.", 4)
                                     
-                                    local cframePorta = painel.CFrame * CFrame_new(0, 0, -3)
+                                    local cframePorta = painel.CFrame * CFrame.new(0, 0, -3)
                                     local sucesso = EsperarETeleportar(cframePorta)
                                     
                                     if sucesso then
@@ -1517,28 +1478,26 @@ return function(env)
                                             
                                             RemoteEvent:FireServer("Input", "Trigger", true, eventoPorta)
                                             RemoteEvent:FireServer("Input", "Action", true)
-                                            task_wait(0.1)
+                                            task.wait(0.1)
                                         end
                                         
                                         if getgenv().EscapouDaPartida then break end 
                                         
                                         Alertar("Target Unlocked", "Door opened. Escaping...", 4)
-                                        task_wait(3) 
+                                        task.wait(3) 
                                         
                                         local char = LocalPlayer.Character
                                         if char and char:FindFirstChild("HumanoidRootPart") then
                                             local hrp = char.HumanoidRootPart
                                             
                                             local centroPortaCFrame = porta:GetBoundingBox()
-                                            hrp.CFrame = CFrame_new(centroPortaCFrame.Position)
-                                            task_wait(0.5)
+                                            hrp.CFrame = CFrame.new(centroPortaCFrame.Position)
+                                            task.wait(0.5)
                                             
-                                            local portaParts = porta:GetDescendants()
-                                            for j = 1, #portaParts do
-                                                local parte = portaParts[j]
+                                            for _, parte in pairs(porta:GetDescendants()) do
                                                 if parte:IsA("BasePart") and parte.Transparency >= 0.8 and not parte.CanCollide then
                                                     hrp.CFrame = parte.CFrame
-                                                    task_wait(0.2) 
+                                                    task.wait(0.2) 
                                                     
                                                     if not LocalPlayer:FindFirstChild("TempPlayerStatsModule") then
                                                         break
@@ -1581,13 +1540,13 @@ return function(env)
                                 
                                 local char = LocalPlayer.Character
                                 if char and char:FindFirstChild("HumanoidRootPart") then
-                                    char.HumanoidRootPart.Velocity = Vector3_zero
+                                    char.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
                                 end
                             end
                         end
                     end)
                 end
-                task_wait(1) 
+                task.wait(1) 
             end
         end)
     end
