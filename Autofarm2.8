@@ -6,27 +6,37 @@ return function(env)
     local Workspace = env.Workspace
     local ReplicatedStorage = env.ReplicatedStorage
 
-    -- Serviços adicionais necessários
+    local game = game
+    local workspace = workspace
+    local type = type
+    local pcall = pcall
+    local coroutine = coroutine
+    local string = string
+    local table = table
+    local ipairs = ipairs
+    local pairs = pairs
+    local next = next
+    local select = select
+    local getgenv = getgenv
+
     local GuiService = game:GetService("GuiService")
     local TeleportService = game:GetService("TeleportService")
     local TweenService = game:GetService("TweenService")
     local RunService = game:GetService("RunService")
     local StarterGui = game:GetService("StarterGui")
 
-    -- Remotes comuns necessários obtidos de forma não-bloqueante (Bypass para outros jogos)
     local RemoteEvent = ReplicatedStorage:WaitForChild("RemoteEvent", 1)
 
-    -- Otimizações de performance (Micro-optimizations)
     local Vector3_new = Vector3.new
+    local Vector3_zero = Vector3.zero
     local CFrame_new = CFrame.new
+    local CFrame_Angles = CFrame.Angles
     local task_wait = task.wait
     local task_spawn = task.spawn
-    local ipairs = ipairs
-    local pairs = pairs
     local math_floor = math.floor
+    local math_rad = math.rad
     local tick = tick
 
-    -- Função de Notificações Unificada e Otimizada
     local function SendNotification(title, text, duration)
         if not text then
             text = title
@@ -58,18 +68,13 @@ return function(env)
     local AutoRejoinToggleObj
     local ModAlertToggleObj
 
-    -- Novos estados internos para as configurações solicitadas
     local AutoHideHackEnabled = false
     local WaitForExitBeastFarmEnabled = false
     local BeastProtectionEnabled = false
 
-    -- Gerenciadores de Conexões Globais
     local RejoinConnection = nil
     local ModAddedConnection = nil
 
-    -- =========================================================================
-    -- CONFIGURAÇÕES E ESTADOS INTERNOS DO AUTO FARM FLY (ENGINE)
-    -- =========================================================================
     local FlyConfig = {
         FarmTweenSpeed = 22,        
         WaitTweenFast = 8,          
@@ -102,9 +107,6 @@ return function(env)
     local fly_MapConnection = nil
     local fly_BackgroundLoopActive = false
 
-    -- =========================================================================
-    -- FUNÇÕES DE SUPORTE DO AUTO FARM FLY
-    -- =========================================================================
     local function fly_RemoveSafePlatform()
         if fly_safePlatform then
             pcall(function()
@@ -129,7 +131,6 @@ return function(env)
         end
     end
 
-    -- CORREÇÃO: Verifica se o jogador ainda está fisicamente no Lobby
     local function IsInLobby()
         local lobby = workspace:FindFirstChild("LobbySpawnPad")
         if lobby and fly_IsThereChar() then
@@ -138,7 +139,6 @@ return function(env)
         return false
     end
 
-    -- Limpa referências salvas de rodadas passadas
     local function ClearMatchCache()
         fly_cachedBeast = nil
         fly_Beast = nil
@@ -192,7 +192,6 @@ return function(env)
         return true
     end
 
-    -- Validador preciso de função para a Besta (Previne cache falso de rodadas passadas)
     local function checkIsBeast(plr)
         if not fly_IsThereChar(plr) then return false end
         local stats = plr:FindFirstChild("TempPlayerStatsModule")
@@ -218,7 +217,9 @@ return function(env)
             return fly_cachedBeast
         end
 
-        for _, v in ipairs(Players:GetPlayers()) do
+        local playersList = Players:GetPlayers()
+        for i = 1, #playersList do
+            local v = playersList[i]
             if checkIsBeast(v) then
                 fly_cachedBeast = v
                 return v
@@ -228,16 +229,15 @@ return function(env)
         return nil
     end
 
-    -- =========================================================================
-    -- FUNÇÕES DE SUPORTE DO AUTO WIN BEAST ORIGINAL
-    -- =========================================================================
     local function ObterRaiz(character)
         if not character then return nil end
         return character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
     end
 
     local function ObterMapaAtual()
-        for _, obj in pairs(Workspace:GetChildren()) do
+        local children = Workspace:GetChildren()
+        for i = 1, #children do
+            local obj = children[i]
             if obj:FindFirstChild("FreezePod") or obj:FindFirstChild("ComputerTable") then
                 return obj
             end
@@ -247,7 +247,9 @@ return function(env)
 
     local function ObterTuboVazio(mapa)
         if not mapa then return nil end
-        for _, obj in pairs(mapa:GetChildren()) do
+        local children = mapa:GetChildren()
+        for i = 1, #children do
+            local obj = children[i]
             if obj.Name == "FreezePod" then
                 local trigger = obj:FindFirstChild("PodTrigger", true)
                 if trigger then
@@ -262,9 +264,6 @@ return function(env)
         return nil
     end
 
-    -- =========================================================================
-    -- LÓGICA PRINCIPAL: SURVIVOR FLY ENGINE
-    -- =========================================================================
     local function fly_DoSurvivorFarm()
         local DoNotTeleport = false
 
@@ -305,7 +304,6 @@ return function(env)
             return Result
         end
 
-        -- Aguarda o carregamento físico dos computadores no mapa por até 5 segundos
         local MapObjects = GetMapObjects()
         local loadAttempts = 0
         while #MapObjects.Computers == 0 and loadAttempts < 10 do
@@ -360,7 +358,7 @@ return function(env)
         local CurrentComputer = nil
 
         local function GetComputer(Computer)
-            if TaskGood() and Computer.Screen.BrickColor ~= BrickColor.new("Dark green") and not OnComputer then
+            if TaskGood() and Computer.Screen.BrickColor ~= BrickColor_new("Dark green") and not OnComputer then
                 OnComputer = true
                 local Prioritize = FlyConfig.TriggerPrioritization
                 local Triggers = {}
@@ -375,7 +373,7 @@ return function(env)
 
                 for i = 1, #Triggers do
                     local v = Triggers[i]
-                    if v and TaskGood() and v.ActionSign.Value == 20 and not fly_IsTriggerOccupied(v) and Computer.Screen.BrickColor ~= BrickColor.new("Dark green") and ChosenComputer == Computer then
+                    if v and TaskGood() and v.ActionSign.Value == 20 and not fly_IsTriggerOccupied(v) and Computer.Screen.BrickColor ~= BrickColor_new("Dark green") and ChosenComputer == Computer then
                         local Distance = (LocalPlayer.Character.HumanoidRootPart.Position - v.Position).Magnitude
 
                         if Distance / FlyConfig.FarmTweenSpeed < FlyConfig.WaitTweenFast then
@@ -390,7 +388,7 @@ return function(env)
                         SendNotification("Objective", "Moving to computer table", 2.5)
                         GoTween(v)
 
-                        if Computer.Screen.BrickColor == BrickColor.new("Dark green") then CurrentComputer = nil; OnComputer = false; return end
+                        if Computer.Screen.BrickColor == BrickColor_new("Dark green") then CurrentComputer = nil; OnComputer = false; return end
                         if not TaskGood() then CurrentComputer = nil; OnComputer = false; return end
                         if v.ActionSign.Value ~= 20 or (ChosenComputer ~= Computer and ChosenComputer ~= nil) then continue end
 
@@ -426,7 +424,6 @@ return function(env)
                                 CurrentComputer = Computer
                                 Tries = 0
 
-                                -- EXECUÇÃO DO AUTO HIDE HACK (TELETRANSPORTE VERTICAL DE SEGURANÇA)
                                 if AutoHideHackEnabled then
                                     if fly_IsThereChar() then
                                         LocalPlayer.Character:PivotTo(v.CFrame * CFrame_new(0, 50, 0))
@@ -461,7 +458,7 @@ return function(env)
                                 SendNotification("Error", "Failed to start hacking. Re-trying.", 3)
                                 return
                             end
-                        until not TaskGood() or Computer.Screen.BrickColor == BrickColor.new("Dark green") or (ChosenComputer ~= Computer and ChosenComputer ~= nil)
+                        until not TaskGood() or Computer.Screen.BrickColor == BrickColor_new("Dark green") or (ChosenComputer ~= Computer and ChosenComputer ~= nil)
                     end
                 end
                 CurrentComputer = nil
@@ -488,7 +485,7 @@ return function(env)
                     LeastTriggers = 4
                     Closest = math.huge
 
-                    if ChosenComputer and ChosenComputer.Screen.BrickColor == BrickColor.new("Dark green") then
+                    if ChosenComputer and ChosenComputer.Screen.BrickColor == BrickColor_new("Dark green") then
                         SendNotification("Completed", "Computer fully hacked!", 3)
                         ChosenComputer = nil
                     end
@@ -509,11 +506,11 @@ return function(env)
                             end
                         end
 
-                        if v.Screen.BrickColor ~= BrickColor.new("Dark green") then
+                        if v.Screen.BrickColor ~= BrickColor_new("Dark green") then
                             ComputersLeft = ComputersLeft + 1
                         end
 
-                        if v.Screen.BrickColor ~= BrickColor.new("Dark green") and not FoundV and fly_IsThereChar() then
+                        if v.Screen.BrickColor ~= BrickColor_new("Dark green") and not FoundV and fly_IsThereChar() then
                             local Triggers = { v:FindFirstChild("ComputerTrigger3"), v:FindFirstChild("ComputerTrigger2"), v:FindFirstChild("ComputerTrigger1") }
                             local Distance = (Triggers[1].Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
                             local AmtTriggers = 3
@@ -618,9 +615,6 @@ return function(env)
         table.insert(fly_farmtasks, NewFarmTask)
     end
 
-    -- =========================================================================
-    -- LOOP DE MONITORAMENTO EM SEGUNDO PLANO (AUTO FARM FLY / TELEPORT)
-    -- =========================================================================
     local function fly_StartBackgroundLoop()
         if fly_BackgroundLoopActive then return end
         fly_BackgroundLoopActive = true
@@ -633,7 +627,6 @@ return function(env)
                     fly_RemoveSafePlatform()
                 end
 
-                -- Se for a Besta, apenas pausa o Survivor Farm sem desativar a toggle
                 if (fly_AutoFarmEnabled or getgenv().NexVoidLigado) and fly_AmIBeast() then
                     for i, v in pairs(fly_farmtasks) do
                         pcall(function()
@@ -674,7 +667,6 @@ return function(env)
                 fly_TempPlayerStatsModule = LocalPlayer:FindFirstChild("TempPlayerStatsModule")
                 fly_Beast = fly_GetBeast()
 
-                -- Proteção com Plataforma Estática (Fly e Teleport)
                 if BeastProtectionEnabled and FlyConfig.HideBeastNear and fly_IsThereChar() and fly_TempPlayerStatsModule and not fly_TempPlayerStatsModule.IsBeast.Value then
                     if (fly_Beast == nil or not fly_IsThereChar(fly_Beast)) then
                         if fly_bnhide then
@@ -765,7 +757,6 @@ return function(env)
                     fly_TPPlayerSpawn()
                 end
 
-                -- Retomada Survivor automática quando as condições permitirem
                 if fly_AutoFarmEnabled and not fly_onsurvivorfarm and not fly_AmIBeast() and fly_IsMatchActive() then
                     task_spawn(function()
                         while IsInLobby() and fly_IsMatchActive() and fly_AutoFarmEnabled do
@@ -777,7 +768,6 @@ return function(env)
                     end)
                 end
 
-                -- Monitora a contagem de computadores, mas respeita a espera do teletransporte caso mude de estado
                 local currentMapObj = ReplicatedStorage:FindFirstChild("CurrentMap")
                 local CurrentMap = currentMapObj and currentMapObj.Value
                 if CurrentMap then
@@ -813,13 +803,8 @@ return function(env)
         end)
     end
 
-
-    -- =========================================================================
-    -- ELEMENTOS DA INTERFACE (TABS / TOGGLES)
-    -- =========================================================================
     Library:CreateSection(Page, "Main Farming (BETA)")
 
-    -- Enable Auto Farm
     Library:CreateToggle(Page, "Enable Auto Farm", false, function(state)
         MasterAutoFarmState = state
         if state then
@@ -832,7 +817,6 @@ return function(env)
         end
     end)
 
-    -- Auto Win Survivor (Teleport)
     AutoWinSurvivorToggleObj = Library:CreateToggle(Page, "Auto Win Survivor (Teleport)", false, function(state)
         if state then
             if not MasterAutoFarmState then
@@ -845,7 +829,6 @@ return function(env)
             end
             if AutoWinSurvivorFlyToggleObj then AutoWinSurvivorFlyToggleObj.Set(false) end
             
-            -- Ativa o loop de segurança em background para monitorar a Besta no modo Teleport
             fly_StartBackgroundLoop()
         else
             getgenv().FarmRodando = false
@@ -857,7 +840,6 @@ return function(env)
         end
     end)
 
-    -- Auto Win Survivor (Fly)
     AutoWinSurvivorFlyToggleObj = Library:CreateToggle(Page, "Auto win survivor (fly)", false, function(state)
         if state then
             if not MasterAutoFarmState then
@@ -879,18 +861,15 @@ return function(env)
             local currentMapObj = ReplicatedStorage:FindFirstChild("CurrentMap")
             if currentMapObj and not fly_MapConnection then
                 fly_MapConnection = currentMapObj.Changed:Connect(function(newMap)
-                    -- Limpeza completa do cache para iniciar a nova rodada sem bugs de estado
                     ClearMatchCache()
                     
                     if newMap and fly_AutoFarmEnabled and not fly_onsurvivorfarm then
                         if fly_AmIBeast() then return end
                         
-                        -- Aguarda enquanto o jogador ainda estiver no Lobby física/visualmente
                         while IsInLobby() and fly_IsMatchActive() and fly_AutoFarmEnabled do
                             task_wait(0.2)
                         end
                         
-                        -- Se o teletransporte ocorreu com sucesso e não está no lobby
                         if fly_AutoFarmEnabled and not fly_onsurvivorfarm and not IsInLobby() then
                             SendNotification("Match", "Teleported! Starting farm instantly.", 3)
                             task_spawn(fly_DoSurvivorFarm)
@@ -925,7 +904,6 @@ return function(env)
         end
     end)
 
-    -- Auto Win Beast
     AutoWinBeastToggleObj = Library:CreateToggle(Page, "Auto Win Beast", false, function(state)
         if state and not MasterAutoFarmState then
             task.spawn(function()
@@ -938,7 +916,6 @@ return function(env)
         getgenv().AutoWinBeast = state
     end)
 
-    -- Auto Save (Silent)
     Library:CreateToggle(Page, "Auto Save (Silent)", false, function(state)
         getgenv().AutoHelpSilent = state
         if state then
@@ -946,7 +923,6 @@ return function(env)
         end
     end)
 
-    -- Auto Save (Teleport)
     AutoSaveTeleportToggleObj = Library:CreateToggle(Page, "Auto Save (Teleport)", false, function(state)
         getgenv().AutoHelpTeleport = state
         if state then
@@ -962,7 +938,7 @@ return function(env)
                 end
 
                 while getgenv().AutoHelpTeleport do
-                    task.wait(0.05)
+                    task_wait(0.05)
 
                     local meChar = LocalPlayer.Character
                     local meRoot = getRoot(meChar)
@@ -978,7 +954,9 @@ return function(env)
                     if myRagdoll and myRagdoll.Value then continue end
                     if myCaptured and myCaptured.Value then continue end
 
-                    for _, alvo in pairs(Players:GetPlayers()) do
+                    local playersList = Players:GetPlayers()
+                    for i = 1, #playersList do
+                        local alvo = playersList[i]
                         if alvo == LocalPlayer or helping then continue end
 
                         local alvoStats = alvo:FindFirstChild("TempPlayerStatsModule")
@@ -993,10 +971,10 @@ return function(env)
                                 oldCFrame = meRoot.CFrame
 
                                 repeat
-                                    task.wait(0.05)
+                                    task_wait(0.05)
                                     local atualRoot = getRoot(LocalPlayer.Character)
                                     if atualRoot then
-                                        atualRoot.CFrame = alvoRoot.CFrame * CFrame.new(0, -4.5, 0) * CFrame.Angles(math.rad(90), 0, 0)
+                                        atualRoot.CFrame = alvoRoot.CFrame * CFrame_new(0, -4.5, 0) * CFrame_Angles(math_rad(90), 0, 0)
                                     end
                                     RemoteEvent:FireServer("Input", "Action", true)
                                     
@@ -1018,13 +996,8 @@ return function(env)
         end
     end)
 
-
-    -- =========================================================================
-    -- SEÇÃO: FARM SETTINGS
-    -- =========================================================================
     Library:CreateSection(Page, "Farm Settings")
 
-    -- Anti AFK
     AntiAfkToggleObj = Library:CreateToggle(Page, "Anti AFK", false, function(state)
         if MasterAutoFarmState and not state then
             task.spawn(function()
@@ -1037,14 +1010,12 @@ return function(env)
         _G.AntiAfkEnabled = state
     end)
 
-    -- Beast Protection (Safe Platform)
     Library:CreateToggle(Page, "Beast Protection (Safe Platform)", false, function(state)
         BeastProtectionEnabled = state
         if state then
             SendNotification("Beast Protection", "Safe platform protection is now active.", 3)
         else
             SendNotification("Beast Protection", "Safe platform protection disabled.", 3)
-            -- Remove a plataforma e devolve o jogador de volta ao chão imediatamente se desativado enquanto esconde
             fly_bnhide = false
             fly_bnhideelapse = 0
             fly_RemoveSafePlatform()
@@ -1058,7 +1029,6 @@ return function(env)
         end
     end)
 
-    -- Auto-Hide Hack
     Library:CreateToggle(Page, "Auto-Hide Hack", false, function(state)
         AutoHideHackEnabled = state
         if state then
@@ -1066,7 +1036,6 @@ return function(env)
         end
     end)
 
-    -- Wait For Exit Beast Farm
     Library:CreateToggle(Page, "Wait For Exit Beast Farm", false, function(state)
         WaitForExitBeastFarmEnabled = state
         if state then
@@ -1074,7 +1043,6 @@ return function(env)
         end
     end)
 
-    -- Auto Rejoin (Disconnection)
     AutoRejoinToggleObj = Library:CreateToggle(Page, "Auto Rejoin (Disconnection)", false, function(state)
         getgenv().AutoRejoinEnabled = state
         if state then
@@ -1097,7 +1065,6 @@ return function(env)
         end
     end)
 
-    -- Moderator Alert/Kick
     ModAlertToggleObj = Library:CreateToggle(Page, "Moderator Alert/Kick", false, function(state)
         getgenv().ModAlertKickEnabled = state
         
@@ -1129,8 +1096,9 @@ return function(env)
 
         if state then
             SendNotification("Moderator Alert/Kick Enabled", 3)
-            for _, player in ipairs(Players:GetPlayers()) do
-                task.spawn(checkPlayer, player)
+            local playersList = Players:GetPlayers()
+            for i = 1, #playersList do
+                task.spawn(checkPlayer, playersList[i])
             end
             if not ModAddedConnection then
                 ModAddedConnection = Players.PlayerAdded:Connect(function(player)
@@ -1145,18 +1113,12 @@ return function(env)
         end
     end)
 
-    -- Fly Speed Slider (Alinhado em último lugar na categoria de configurações)
     Library:CreateSlider(Page, "Fly Farm Speed", 16, 30, 22, function(val)
         FlyConfig.FarmTweenSpeed = val
     end)
 
-
-    -- =========================================================================
-    -- DETECTORES DO AUTO FARM TELEPORT CLASSIC E OUTROS LOOPS DE SUPORTE
-    -- =========================================================================
     local IsGameActive = ReplicatedStorage:WaitForChild("IsGameActive", 1)
 
-    -- [[ ANTI AFK LOOP ]] --
     task.spawn(function()
         local VirtualUser = game:GetService("VirtualUser")
         if _G.AntiAfkConnection then
@@ -1165,22 +1127,22 @@ return function(env)
         _G.AntiAfkConnection = LocalPlayer.Idled:Connect(function()
             if _G.AntiAfkEnabled then
                 VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2.new(0,0))
+                VirtualUser:ClickButton2(Vector2_new(0,0))
             end
         end)
     end)
 
-    -- [[ AUTO-EQUIP DA MARRETA EM SEGUNDO PLANO ]] --
     task.spawn(function()
         while true do
-            task.wait(0.5) -- Loop leve executado a cada 0.5 segundos
+            task_wait(0.5) 
             if getgenv().AutoWinBeast and IsGameActive and IsGameActive.Value then
                 pcall(function()
                     local char = LocalPlayer.Character
                     local backpack = LocalPlayer:FindFirstChild("Backpack")
                     if char and backpack then
-                        for _, tool in ipairs(backpack:GetChildren()) do
-                            -- Localiza qualquer marreta ou ferramenta com o evento de ataque
+                        local tools = backpack:GetChildren()
+                        for i = 1, #tools do
+                            local tool = tools[i]
                             if tool:IsA("Tool") and (tool.Name:match("Hammer") or tool.Name:match("Mallet") or tool:FindFirstChild("HammerEvent")) then
                                 local hum = char:FindFirstChildOfClass("Humanoid")
                                 if hum then
@@ -1195,30 +1157,30 @@ return function(env)
         end
     end)
 
-    -- [[ AUTO WIN BEAST - CHASE LOOP ORIGINAL ]] --
     task.spawn(function()
         while true do
-            task.wait(0.1) 
+            task_wait(0.1) 
             if getgenv().AutoWinBeast then
                 pcall(function()
                     if not IsGameActive or not IsGameActive.Value or not LocalPlayer:FindFirstChild("TempPlayerStatsModule") then return end
                     
-                    -- MECANISMO DE ESPERA DOS COMPUTADORES (WAIT FOR EXIT BEAST FARM)
                     if WaitForExitBeastFarmEnabled then
                         local mapa = ObterMapaAtual()
                         if mapa then
                             local todosHackeados = true
-                            for _, obj in pairs(mapa:GetChildren()) do
+                            local children = mapa:GetChildren()
+                            for i = 1, #children do
+                                local obj = children[i]
                                 if obj.Name == "ComputerTable" then
                                     local screen = obj:FindFirstChild("Screen")
-                                    if screen and screen.BrickColor ~= BrickColor.new("Dark green") then
+                                    if screen and screen.BrickColor ~= BrickColor_new("Dark green") then
                                         todosHackeados = false
                                         break
                                     end
                                 end
                             end
                             if not todosHackeados then
-                                return -- Impede o teletransporte e caça enquanto houver computadores ativos
+                                return 
                             end
                         end
                     end
@@ -1231,7 +1193,9 @@ return function(env)
                     local AlvoAtual = nil
                     local RaizAlvo = nil
                     
-                    for _, alvo in pairs(Players:GetPlayers()) do
+                    local playersList = Players:GetPlayers()
+                    for i = 1, #playersList do
+                        local alvo = playersList[i]
                         if alvo ~= LocalPlayer and alvo.Character then
                             local Stats = alvo:FindFirstChild("TempPlayerStatsModule")
                             if Stats and Stats:FindFirstChild("Captured") and not Stats.Captured.Value then
@@ -1246,18 +1210,17 @@ return function(env)
                     end
                     
                     if RaizAlvo and LocalPlayer.Character then
-                        LocalPlayer.Character:PivotTo(RaizAlvo.CFrame * CFrame.new(0, 0, 1.5))
-                        MinhaRaiz.Velocity = Vector3.zero 
+                        LocalPlayer.Character:PivotTo(RaizAlvo.CFrame * CFrame_new(0, 0, 1.5))
+                        MinhaRaiz.Velocity = Vector3_zero 
                     end
                 end)
             end
         end
     end)
 
-    -- [[ AUTO WIN BEAST - ATTACK LOOP ORIGINAL ]] --
     task.spawn(function()
         while true do
-            task.wait(0.1)
+            task_wait(0.1)
             if getgenv().AutoWinBeast then
                 pcall(function()
                     if not IsGameActive or not IsGameActive.Value or not LocalPlayer:FindFirstChild("TempPlayerStatsModule") then return end
@@ -1268,7 +1231,9 @@ return function(env)
                     
                     if not MeuEventoMarreta or not MinhaRaiz then return end
                     
-                    for _, alvo in pairs(Players:GetPlayers()) do
+                    local playersList = Players:GetPlayers()
+                    for i = 1, #playersList do
+                        local alvo = playersList[i]
                         if alvo ~= LocalPlayer and alvo.Character then
                             local Stats = alvo:FindFirstChild("TempPlayerStatsModule")
                             if not Stats then continue end
@@ -1297,10 +1262,9 @@ return function(env)
         end
     end)
 
-    -- [[ AUTO WIN BEAST - FREEZEPOD LOOP ORIGINAL ]] --
     task.spawn(function()
         while true do
-            task.wait(0.1)
+            task_wait(0.1)
             if getgenv().AutoWinBeast then
                 pcall(function()
                     if not IsGameActive or not IsGameActive.Value or not LocalPlayer:FindFirstChild("TempPlayerStatsModule") then return end
@@ -1310,7 +1274,9 @@ return function(env)
                     
                     local mapa = ObterMapaAtual()
                     
-                    for _, alvo in pairs(Players:GetPlayers()) do
+                    local playersList = Players:GetPlayers()
+                    for i = 1, #playersList do
+                        local alvo = playersList[i]
                         if alvo ~= LocalPlayer and alvo.Character then
                             local Stats = alvo:FindFirstChild("TempPlayerStatsModule")
                             if not Stats then continue end
@@ -1322,7 +1288,7 @@ return function(env)
                                 local tuboVazio = ObterTuboVazio(mapa)
                                 if tuboVazio then
                                     RemoteEvent:FireServer("Input", "Trigger", true, tuboVazio)
-                                    task.wait(0.05)
+                                    task_wait(0.05)
                                     RemoteEvent:FireServer("Input", "Action", true)
                                 end
                             end
@@ -1333,7 +1299,6 @@ return function(env)
         end
     end)
 
-    -- [[ AUTO WIN SURVIVOR (TELEPORT CLASSIC) ]] --
     do
         local VELOCIDADE_ANTI_CHUTE = 25 
         getgenv().FarmRodando = false
@@ -1355,9 +1320,8 @@ return function(env)
 
             if tempoDeEspera > 0.5 then
                 Alertar("Anti-Cheat Bypass", "Calculating jump... Waiting " .. string.format("%.1f", tempoDeEspera) .. "s", tempoDeEspera)
-                hrp.Velocity = Vector3.new(0,0,0)
+                hrp.Velocity = Vector3_zero
                 
-                -- Aguarda de forma segura e interrompível se a Besta se aproximar
                 local elapsed = 0
                 while elapsed < tempoDeEspera do
                     task_wait(0.1)
@@ -1366,13 +1330,11 @@ return function(env)
                 end
             end
 
-            -- Verifica a segurança imediata antes de realizar o teleporte
             if not PossoAgir() then return false end
 
             hrp.CFrame = destinoCFrame
-            hrp.Velocity = Vector3.new(0, 0, 0)
+            hrp.Velocity = Vector3_zero
             
-            -- Tempo de espera pós-teleporte interrompível de segurança
             local elapsed2 = 0
             while elapsed2 < 1.2 do
                 task_wait(0.1)
@@ -1395,7 +1357,7 @@ return function(env)
         local function PossoAgir()
             if getgenv().EscapouDaPartida then return false end 
             if getgenv().SouBeastNessaRodada then return false end
-            if fly_bnhide then return false end -- Pausa as ações se estiver escondido da Besta
+            if fly_bnhide then return false end 
             
             local char = LocalPlayer.Character
             if not char then return false end
@@ -1420,7 +1382,9 @@ return function(env)
         end
 
         local function TemGenteNoPC(pcPos)
-            for _, player in pairs(Players:GetPlayers()) do
+            local playersList = Players:GetPlayers()
+            for i = 1, #playersList do
+                local player = playersList[i]
                 if player ~= LocalPlayer and player.Character then
                     local raiz = player.Character:FindFirstChild("HumanoidRootPart")
                     if raiz and (raiz.Position - pcPos).Magnitude <= 6 then 
@@ -1438,7 +1402,9 @@ return function(env)
             local pcMaisPerto = nil
             local menorDistancia = math.huge
 
-            for _, obj in pairs(Workspace:GetDescendants()) do
+            local descendants = Workspace:GetDescendants()
+            for i = 1, #descendants do
+                local obj = descendants[i]
                 if obj.Name == "ComputerTable" then
                     local tela = obj:FindFirstChild("Screen")
                     local teclado = obj:FindFirstChild("Keyboard") or obj:FindFirstChildWhichIsA("BasePart")
@@ -1470,8 +1436,8 @@ return function(env)
 
         local function IniciarRotinaDeFarm()
             task.spawn(function()
-                repeat task.wait(0.1) until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                task.wait(1) 
+                repeat task_wait(0.1) until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                task_wait(1) 
                 
                 if ChecarSeSouBeast() then
                     getgenv().SouBeastNessaRodada = true
@@ -1483,7 +1449,7 @@ return function(env)
                 Alertar("NexVoid System", "Targets detected. Farm started.", 3)
                 
                 while getgenv().FarmRodando and getgenv().NexVoidLigado do
-                    task.wait(0.2) 
+                    task_wait(0.2) 
                     
                     if getgenv().EscapouDaPartida then break end
                     if not PossoAgir() then continue end
@@ -1500,7 +1466,7 @@ return function(env)
                         end
 
                         if pcCFrame then
-                            local sucesso = EsperarETeleportar(pcCFrame * CFrame.new(0, 3, -3))
+                            local sucesso = EsperarETeleportar(pcCFrame * CFrame_new(0, 3, -3))
                             
                             if sucesso then
                                 while getgenv().FarmRodando and not getgenv().EscapouDaPartida do
@@ -1514,15 +1480,17 @@ return function(env)
                                     
                                     local char = LocalPlayer.Character
                                     if char and char:FindFirstChild("HumanoidRootPart") then
-                                        char.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                                        char.HumanoidRootPart.Velocity = Vector3_zero
                                     end
-                                    task.wait(0.1) 
+                                    task_wait(0.1) 
                                 end
                             end
                         end
                         
                     else
-                        for _, porta in pairs(Workspace:GetDescendants()) do
+                        local descendants = Workspace:GetDescendants()
+                        for i = 1, #descendants do
+                            local porta = descendants[i]
                             if porta.Name == "ExitDoor" then
                                 local painel = porta:FindFirstChild("Light", true) or porta:FindFirstChild("Lock", true) or porta:FindFirstChildWhichIsA("BasePart")
                                 local eventoPorta = porta:FindFirstChild("Event", true) or porta:FindFirstChildWhichIsA("RemoteEvent", true)
@@ -1531,7 +1499,7 @@ return function(env)
                                     
                                     Alertar("Target Locked", "Moving to Exit Door.", 4)
                                     
-                                    local cframePorta = painel.CFrame * CFrame.new(0, 0, -3)
+                                    local cframePorta = painel.CFrame * CFrame_new(0, 0, -3)
                                     local sucesso = EsperarETeleportar(cframePorta)
                                     
                                     if sucesso then
@@ -1549,26 +1517,28 @@ return function(env)
                                             
                                             RemoteEvent:FireServer("Input", "Trigger", true, eventoPorta)
                                             RemoteEvent:FireServer("Input", "Action", true)
-                                            task.wait(0.1)
+                                            task_wait(0.1)
                                         end
                                         
                                         if getgenv().EscapouDaPartida then break end 
                                         
                                         Alertar("Target Unlocked", "Door opened. Escaping...", 4)
-                                        task.wait(3) 
+                                        task_wait(3) 
                                         
                                         local char = LocalPlayer.Character
                                         if char and char:FindFirstChild("HumanoidRootPart") then
                                             local hrp = char.HumanoidRootPart
                                             
                                             local centroPortaCFrame = porta:GetBoundingBox()
-                                            hrp.CFrame = CFrame.new(centroPortaCFrame.Position)
-                                            task.wait(0.5)
+                                            hrp.CFrame = CFrame_new(centroPortaCFrame.Position)
+                                            task_wait(0.5)
                                             
-                                            for _, parte in pairs(porta:GetDescendants()) do
+                                            local portaParts = porta:GetDescendants()
+                                            for j = 1, #portaParts do
+                                                local parte = portaParts[j]
                                                 if parte:IsA("BasePart") and parte.Transparency >= 0.8 and not parte.CanCollide then
                                                     hrp.CFrame = parte.CFrame
-                                                    task.wait(0.2) 
+                                                    task_wait(0.2) 
                                                     
                                                     if not LocalPlayer:FindFirstChild("TempPlayerStatsModule") then
                                                         break
@@ -1611,18 +1581,17 @@ return function(env)
                                 
                                 local char = LocalPlayer.Character
                                 if char and char:FindFirstChild("HumanoidRootPart") then
-                                    char.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+                                    char.HumanoidRootPart.Velocity = Vector3_zero
                                 end
                             end
                         end
                     end)
                 end
-                task.wait(1) 
+                task_wait(1) 
             end
         end)
     end
 
-    -- [[ AUTO SAVE (SILENT) BACKEND ]] --
     do
         local function GetCurrentMap()
             local map
