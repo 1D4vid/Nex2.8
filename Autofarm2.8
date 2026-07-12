@@ -26,7 +26,7 @@ return function(env)
     local math_floor = math.floor
     local tick = tick
 
-    -- Função de Notificações Unificada e Otimizada (Inglês)
+    -- Função de Notificações Unificada e Otimizada
     local function SendNotification(title, text, duration)
         if not text then
             text = title
@@ -61,6 +61,7 @@ return function(env)
     -- Novos estados internos para as configurações solicitadas
     local AutoHideHackEnabled = false
     local WaitForExitBeastFarmEnabled = false
+    local BeastProtectionEnabled = true
 
     -- Gerenciadores de Conexões Globais
     local RejoinConnection = nil
@@ -137,16 +138,15 @@ return function(env)
         return false
     end
 
-    local function fly_AmIBeast(plr)
-        local targetPlr = plr or LocalPlayer
-        local stats = targetPlr:FindFirstChild("TempPlayerStatsModule")
+    local function fly_AmIBeast()
+        local stats = LocalPlayer:FindFirstChild("TempPlayerStatsModule")
         if stats then
             local isBeastVal = stats:FindFirstChild("IsBeast")
             if isBeastVal and isBeastVal.Value then
                 return true
             end
         end
-        local char = targetPlr.Character
+        local char = LocalPlayer.Character
         if char and (char:FindFirstChild("BeastHammer") or char:FindFirstChild("Hammer") or char:FindFirstChild("Weapon")) then
             return true
         end
@@ -180,36 +180,54 @@ return function(env)
         return true
     end
 
-    -- CORREÇÃO DA BESTA STALE CACHE (Validação ativa em tempo real)
     local function fly_GetBeast()
-        local function isStillBeast(plr)
-            if not plr or plr.Parent ~= Players or not fly_IsThereChar(plr) then
-                return false
-            end
-            local stats = plr:FindFirstChild("TempPlayerStatsModule")
+        -- Se a partida acabou, limpa o cache imediatamente
+        if not fly_IsMatchActive() then
+            fly_cachedBeast = nil
+            return nil
+        end
+
+        -- Verifica se o jogador armazenado no cache ainda é realmente a besta na rodada atual
+        if fly_cachedBeast and fly_cachedBeast.Parent == Players and fly_IsThereChar(fly_cachedBeast) then
+            local isStillBeast = false
+            local stats = fly_cachedBeast:FindFirstChild("TempPlayerStatsModule")
             if stats then
                 local isBeastVal = stats:FindFirstChild("IsBeast")
                 if isBeastVal and isBeastVal.Value then
-                    return true
+                    isStillBeast = true
                 end
             end
-            local char = plr.Character
+            local char = fly_cachedBeast.Character
             if char and (char:FindFirstChild("BeastHammer") or char:FindFirstChild("Hammer") or char:FindFirstChild("Weapon")) then
-                return true
+                isStillBeast = true
             end
-            local backpack = plr:FindFirstChild("Backpack")
-            if backpack and (backpack:FindFirstChild("BeastHammer") or backpack:FindFirstChild("Hammer") or backpack:FindFirstChild("Weapon")) then
-                return true
+
+            if isStillBeast then
+                return fly_cachedBeast
+            else
+                fly_cachedBeast = nil -- Limpa se ele não for mais a Besta nesta rodada
             end
-            return false
         end
 
-        if fly_cachedBeast and isStillBeast(fly_cachedBeast) then
-            return fly_cachedBeast
-        end
-
+        -- Procura o jogador que possui os atributos de besta na partida ativa
         for _, v in ipairs(Players:GetPlayers()) do
-            if isStillBeast(v) then
+            local stats = v:FindFirstChild("TempPlayerStatsModule")
+            if stats then
+                local isBeastVal = stats:FindFirstChild("IsBeast")
+                if isBeastVal and isBeastVal.Value then
+                    fly_cachedBeast = v
+                    return v
+                end
+            end
+            
+            local char = v.Character
+            if char and (char:FindFirstChild("BeastHammer") or char:FindFirstChild("Hammer") or char:FindFirstChild("Weapon")) then
+                fly_cachedBeast = v
+                return v
+            end
+            
+            local backpack = v:FindFirstChild("Backpack")
+            if backpack and (backpack:FindFirstChild("BeastHammer") or backpack:FindFirstChild("Hammer") or backpack:FindFirstChild("Weapon")) then
                 fly_cachedBeast = v
                 return v
             end
@@ -653,7 +671,6 @@ return function(env)
                     fly_onsurvivorfarm = false
                     fly_bnhide = false
                     fly_Comp = 0 
-                    fly_cachedBeast = nil -- LIMPA O CACHE DA BESTA QUANDO A RODADA TERMINA
                     
                     if fly_AutoFarmEnabled or getgenv().NexVoidLigado then
                         if not fly_notifiedLobby then
@@ -672,7 +689,7 @@ return function(env)
                 fly_Beast = fly_GetBeast()
 
                 -- Proteção com Plataforma Estática (Fly e Teleport)
-                if FlyConfig.HideBeastNear and fly_IsThereChar() and fly_TempPlayerStatsModule and not fly_TempPlayerStatsModule.IsBeast.Value then
+                if BeastProtectionEnabled and FlyConfig.HideBeastNear and fly_IsThereChar() and fly_TempPlayerStatsModule and not fly_TempPlayerStatsModule.IsBeast.Value then
                     if (fly_Beast == nil or not fly_IsThereChar(fly_Beast)) then
                         if fly_bnhide then
                             fly_bnhide = false
@@ -815,9 +832,7 @@ return function(env)
     -- ELEMENTOS DA INTERFACE (TABS / TOGGLES)
     -- =========================================================================
     Library:CreateSection(Page, "Main Farming (BETA)")
-    
-    -- AVISO OBRIGATÓRIO NA CATEGORIA PRINCIPAL
-    Library:CreateLabel(Page, "Auto-farming will start when the match begins.")
+    Library:CreateSection(Page, "Auto-farming will start when the match begins.")
 
     -- Enable Auto Farm
     Library:CreateToggle(Page, "Enable Auto Farm", false, function(state)
@@ -947,7 +962,7 @@ return function(env)
     AutoSaveTeleportToggleObj = Library:CreateToggle(Page, "Auto Save (Teleport)", false, function(state)
         getgenv().AutoHelpTeleport = state
         if state then
-            SendNotification("Auto Help (Teleport) | Activated", 3)
+            SendNotification("Auto Help (Teleport) | Enabled", 3)
             
             task.spawn(function()
                 local helping = false
@@ -1034,17 +1049,11 @@ return function(env)
         _G.AntiAfkEnabled = state
     end)
 
-    -- Beast Proximity Protection (Proteção de teleporte para a plataforma)
-    Library:CreateToggle(Page, "Beast Proximity Protection", true, function(state)
-        FlyConfig.HideBeastNear = state
-        SendNotification("Beast Proximity Protection", state and "Enabled" or "Disabled", 3)
-    end)
-
     -- Auto-Hide Hack
     Library:CreateToggle(Page, "Auto-Hide Hack", false, function(state)
         AutoHideHackEnabled = state
         if state then
-            SendNotification("Auto-Hide Hack Activated", "Character will be safe high above the computer while hacking.", 3)
+            SendNotification("Auto-Hide Hack Enabled", "You will be automatically hidden above the PC while hacking.", 3)
         end
     end)
 
@@ -1052,7 +1061,17 @@ return function(env)
     Library:CreateToggle(Page, "Wait For Exit Beast Farm", false, function(state)
         WaitForExitBeastFarmEnabled = state
         if state then
-            SendNotification("Wait For Exit Beast Farm Activated", "The Beast will now wait for all computer tables to be green before hunting.", 3)
+            SendNotification("Wait For Exit Beast Farm Enabled", "The Beast will wait for exit doors to power up before hunting.", 3)
+        end
+    end)
+
+    -- Beast Protection (Safe Platform)
+    Library:CreateToggle(Page, "Beast Protection", true, function(state)
+        BeastProtectionEnabled = state
+        if state then
+            SendNotification("Beast Protection Enabled", "Safe platform protection is now active.", 3)
+        else
+            SendNotification("Beast Protection Disabled", "Safe platform protection is now inactive.", 3)
         end
     end)
 
@@ -1060,7 +1079,7 @@ return function(env)
     AutoRejoinToggleObj = Library:CreateToggle(Page, "Auto Rejoin (Disconnection)", false, function(state)
         getgenv().AutoRejoinEnabled = state
         if state then
-            SendNotification("Auto Rejoin Activated", 3)
+            SendNotification("Auto Rejoin Enabled", 3)
             if not RejoinConnection then
                 RejoinConnection = GuiService.ErrorMessageChanged:Connect(function(errorMessage)
                     if getgenv().AutoRejoinEnabled and errorMessage and errorMessage ~= "" then
@@ -1102,7 +1121,7 @@ return function(env)
 
             if isMod and getgenv().ModAlertKickEnabled then
                 if MOD_ACTION == "KICK" then
-                    LocalPlayer:Kick("[Security] A moderator (" .. player.Name .. ") joined. You were disconnected to prevent a ban.")
+                    LocalPlayer:Kick("[Security] A moderator (" .. player.Name .. ") joined the server. You have been disconnected to prevent bans.")
                 elseif MOD_ACTION == "ALERT" then
                     SendNotification("[DANGER] Moderator detected: " .. player.Name, 10)
                 end
@@ -1110,7 +1129,7 @@ return function(env)
         end
 
         if state then
-            SendNotification("Moderator Alert/Kick Activated", 3)
+            SendNotification("Moderator Alert/Kick Enabled", 3)
             for _, player in ipairs(Players:GetPlayers()) do
                 task.spawn(checkPlayer, player)
             end
@@ -1177,7 +1196,7 @@ return function(env)
         end
     end)
 
-    -- [[ AUTO WIN BEAST - CHASE LOOP ORIGINAL ]] --
+    -- [[ AUTO WIN BEAST - CHASE LOOP ]] --
     task.spawn(function()
         while true do
             task.wait(0.1) 
@@ -1185,36 +1204,38 @@ return function(env)
                 pcall(function()
                     if not IsGameActive or not IsGameActive.Value or not LocalPlayer:FindFirstChild("TempPlayerStatsModule") then return end
                     
-                    -- CORREÇÃO DO WAIT FOR EXIT BEAST FARM (Verificação robusta pelo ComputersLeft + fallback)
+                    -- MECANISMO DE ESPERA DO WAIT FOR EXIT BEAST FARM (OTIMIZADO)
                     if WaitForExitBeastFarmEnabled then
-                        local todosHackeados = true
-                        local compsLeft = ReplicatedStorage:FindFirstChild("ComputersLeft")
-                        
-                        if compsLeft then
-                            if compsLeft.Value > 0 then
-                                todosHackeados = false
+                        local mapa = ObterMapaAtual()
+                        if mapa then
+                            -- Verifica se as portas de saída já foram ativadas
+                            local exitsPowered = false
+                            for _, obj in pairs(mapa:GetChildren()) do
+                                if obj.Name == "ExitDoor" then
+                                    if obj:FindFirstChild("ExitDoorTrigger") or obj:FindFirstChild("ExitArea") then
+                                        exitsPowered = true
+                                        break
+                                    end
+                                end
                             end
-                        else
-                            -- Fallback: Verifica se ao menos 5 computadores já estão totalmente verdes
-                            local mapa = ObterMapaAtual()
-                            if mapa then
-                                local totalGreen = 0
+                            
+                            -- Se as portas não estão liberadas, checa se todos os PCs foram hackeados
+                            if not exitsPowered then
+                                local todosHackeados = true
+                                local comps = 0
                                 for _, obj in pairs(mapa:GetChildren()) do
                                     if obj.Name == "ComputerTable" then
+                                        comps = comps + 1
                                         local screen = obj:FindFirstChild("Screen")
-                                        if screen and screen.BrickColor == BrickColor.new("Dark green") then
-                                            totalGreen = totalGreen + 1
+                                        if screen and screen.BrickColor ~= BrickColor.new("Dark green") then
+                                            todosHackeados = false
                                         end
                                     end
                                 end
-                                if totalGreen < 5 then
-                                    todosHackeados = false
+                                if comps > 0 and not todosHackeados then
+                                    return -- Aguarda e não executa a caça ainda
                                 end
                             end
-                        end
-
-                        if not todosHackeados then
-                            return -- Aguarda até que as portas estejam abertas/liberadas
                         end
                     end
 
