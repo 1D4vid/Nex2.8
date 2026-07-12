@@ -26,7 +26,7 @@ return function(env)
     local math_floor = math.floor
     local tick = tick
 
-    -- Função de Notificações Unificada e Otimizada
+    -- Função de Notificações Unificada e Otimizada (Inglês)
     local function SendNotification(title, text, duration)
         if not text then
             text = title
@@ -137,15 +137,16 @@ return function(env)
         return false
     end
 
-    local function fly_AmIBeast()
-        local stats = LocalPlayer:FindFirstChild("TempPlayerStatsModule")
+    local function fly_AmIBeast(plr)
+        local targetPlr = plr or LocalPlayer
+        local stats = targetPlr:FindFirstChild("TempPlayerStatsModule")
         if stats then
             local isBeastVal = stats:FindFirstChild("IsBeast")
             if isBeastVal and isBeastVal.Value then
                 return true
             end
         end
-        local char = LocalPlayer.Character
+        local char = targetPlr.Character
         if char and (char:FindFirstChild("BeastHammer") or char:FindFirstChild("Hammer") or char:FindFirstChild("Weapon")) then
             return true
         end
@@ -179,29 +180,36 @@ return function(env)
         return true
     end
 
+    -- CORREÇÃO DA BESTA STALE CACHE (Validação ativa em tempo real)
     local function fly_GetBeast()
-        if fly_cachedBeast and fly_cachedBeast.Parent == Players and fly_IsThereChar(fly_cachedBeast) then
+        local function isStillBeast(plr)
+            if not plr or plr.Parent ~= Players or not fly_IsThereChar(plr) then
+                return false
+            end
+            local stats = plr:FindFirstChild("TempPlayerStatsModule")
+            if stats then
+                local isBeastVal = stats:FindFirstChild("IsBeast")
+                if isBeastVal and isBeastVal.Value then
+                    return true
+                end
+            end
+            local char = plr.Character
+            if char and (char:FindFirstChild("BeastHammer") or char:FindFirstChild("Hammer") or char:FindFirstChild("Weapon")) then
+                return true
+            end
+            local backpack = plr:FindFirstChild("Backpack")
+            if backpack and (backpack:FindFirstChild("BeastHammer") or backpack:FindFirstChild("Hammer") or backpack:FindFirstChild("Weapon")) then
+                return true
+            end
+            return false
+        end
+
+        if fly_cachedBeast and isStillBeast(fly_cachedBeast) then
             return fly_cachedBeast
         end
 
         for _, v in ipairs(Players:GetPlayers()) do
-            local stats = v:FindFirstChild("TempPlayerStatsModule")
-            if stats then
-                local isBeastVal = stats:FindFirstChild("IsBeast")
-                if isBeastVal and isBeastVal.Value then
-                    fly_cachedBeast = v
-                    return v
-                end
-            end
-            
-            local char = v.Character
-            if char and (char:FindFirstChild("BeastHammer") or char:FindFirstChild("Hammer") or char:FindFirstChild("Weapon")) then
-                fly_cachedBeast = v
-                return v
-            end
-            
-            local backpack = v:FindFirstChild("Backpack")
-            if backpack and (backpack:FindFirstChild("BeastHammer") or backpack:FindFirstChild("Hammer") or backpack:FindFirstChild("Weapon")) then
+            if isStillBeast(v) then
                 fly_cachedBeast = v
                 return v
             end
@@ -645,6 +653,7 @@ return function(env)
                     fly_onsurvivorfarm = false
                     fly_bnhide = false
                     fly_Comp = 0 
+                    fly_cachedBeast = nil -- LIMPA O CACHE DA BESTA QUANDO A RODADA TERMINA
                     
                     if fly_AutoFarmEnabled or getgenv().NexVoidLigado then
                         if not fly_notifiedLobby then
@@ -806,6 +815,9 @@ return function(env)
     -- ELEMENTOS DA INTERFACE (TABS / TOGGLES)
     -- =========================================================================
     Library:CreateSection(Page, "Main Farming (BETA)")
+    
+    -- AVISO OBRIGATÓRIO NA CATEGORIA PRINCIPAL
+    Library:CreateLabel(Page, "Auto-farming will start when the match begins.")
 
     -- Enable Auto Farm
     Library:CreateToggle(Page, "Enable Auto Farm", false, function(state)
@@ -935,7 +947,7 @@ return function(env)
     AutoSaveTeleportToggleObj = Library:CreateToggle(Page, "Auto Save (Teleport)", false, function(state)
         getgenv().AutoHelpTeleport = state
         if state then
-            SendNotification("Auto Help (Teleport) | Ativado", 3)
+            SendNotification("Auto Help (Teleport) | Activated", 3)
             
             task.spawn(function()
                 local helping = false
@@ -1022,11 +1034,17 @@ return function(env)
         _G.AntiAfkEnabled = state
     end)
 
+    -- Beast Proximity Protection (Proteção de teleporte para a plataforma)
+    Library:CreateToggle(Page, "Beast Proximity Protection", true, function(state)
+        FlyConfig.HideBeastNear = state
+        SendNotification("Beast Proximity Protection", state and "Enabled" or "Disabled", 3)
+    end)
+
     -- Auto-Hide Hack
     Library:CreateToggle(Page, "Auto-Hide Hack", false, function(state)
         AutoHideHackEnabled = state
         if state then
-            SendNotification("Auto-Hide Hack Ativado", "Você será escondido acima do PC enquanto hackeia.", 3)
+            SendNotification("Auto-Hide Hack Activated", "Character will be safe high above the computer while hacking.", 3)
         end
     end)
 
@@ -1034,7 +1052,7 @@ return function(env)
     Library:CreateToggle(Page, "Wait For Exit Beast Farm", false, function(state)
         WaitForExitBeastFarmEnabled = state
         if state then
-            SendNotification("Wait For Exit Beast Farm Ativado", "A Besta esperará todos os computadores serem hackeados.", 3)
+            SendNotification("Wait For Exit Beast Farm Activated", "The Beast will now wait for all computer tables to be green before hunting.", 3)
         end
     end)
 
@@ -1042,7 +1060,7 @@ return function(env)
     AutoRejoinToggleObj = Library:CreateToggle(Page, "Auto Rejoin (Disconnection)", false, function(state)
         getgenv().AutoRejoinEnabled = state
         if state then
-            SendNotification("Auto Rejoin Ativado", 3)
+            SendNotification("Auto Rejoin Activated", 3)
             if not RejoinConnection then
                 RejoinConnection = GuiService.ErrorMessageChanged:Connect(function(errorMessage)
                     if getgenv().AutoRejoinEnabled and errorMessage and errorMessage ~= "" then
@@ -1084,15 +1102,15 @@ return function(env)
 
             if isMod and getgenv().ModAlertKickEnabled then
                 if MOD_ACTION == "KICK" then
-                    LocalPlayer:Kick("[Segurança] Um moderador (" .. player.Name .. ") entrou no servidor. Você foi desconectado para evitar punições.")
+                    LocalPlayer:Kick("[Security] A moderator (" .. player.Name .. ") joined. You were disconnected to prevent a ban.")
                 elseif MOD_ACTION == "ALERT" then
-                    SendNotification("[PERIGO] Moderador detectado: " .. player.Name, 10)
+                    SendNotification("[DANGER] Moderator detected: " .. player.Name, 10)
                 end
             end
         end
 
         if state then
-            SendNotification("Moderator Alert/Kick Ativado", 3)
+            SendNotification("Moderator Alert/Kick Activated", 3)
             for _, player in ipairs(Players:GetPlayers()) do
                 task.spawn(checkPlayer, player)
             end
@@ -1167,23 +1185,36 @@ return function(env)
                 pcall(function()
                     if not IsGameActive or not IsGameActive.Value or not LocalPlayer:FindFirstChild("TempPlayerStatsModule") then return end
                     
-                    -- MECANISMO DE ESPERA DOS COMPUTADORES (WAIT FOR EXIT BEAST FARM)
+                    -- CORREÇÃO DO WAIT FOR EXIT BEAST FARM (Verificação robusta pelo ComputersLeft + fallback)
                     if WaitForExitBeastFarmEnabled then
-                        local mapa = ObterMapaAtual()
-                        if mapa then
-                            local todosHackeados = true
-                            for _, obj in pairs(mapa:GetChildren()) do
-                                if obj.Name == "ComputerTable" then
-                                    local screen = obj:FindFirstChild("Screen")
-                                    if screen and screen.BrickColor ~= BrickColor.new("Dark green") then
-                                        todosHackeados = false
-                                        break
+                        local todosHackeados = true
+                        local compsLeft = ReplicatedStorage:FindFirstChild("ComputersLeft")
+                        
+                        if compsLeft then
+                            if compsLeft.Value > 0 then
+                                todosHackeados = false
+                            end
+                        else
+                            -- Fallback: Verifica se ao menos 5 computadores já estão totalmente verdes
+                            local mapa = ObterMapaAtual()
+                            if mapa then
+                                local totalGreen = 0
+                                for _, obj in pairs(mapa:GetChildren()) do
+                                    if obj.Name == "ComputerTable" then
+                                        local screen = obj:FindFirstChild("Screen")
+                                        if screen and screen.BrickColor == BrickColor.new("Dark green") then
+                                            totalGreen = totalGreen + 1
+                                        end
                                     end
                                 end
+                                if totalGreen < 5 then
+                                    todosHackeados = false
+                                end
                             end
-                            if not todosHackeados then
-                                return -- Impede o teletransporte e caça enquanto houver computadores ativos
-                            end
+                        end
+
+                        if not todosHackeados then
+                            return -- Aguarda até que as portas estejam abertas/liberadas
                         end
                     end
 
