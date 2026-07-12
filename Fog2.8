@@ -277,58 +277,131 @@ return function(env)
         }
     }
 
+    local cc, bl, br, df, cl, at
+
+    local function getEffects()
+        if not cc or cc.Parent ~= Lighting then cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", Lighting) end
+        if not bl or bl.Parent ~= Lighting then bl = Lighting:FindFirstChildOfClass("BloomEffect") or Instance.new("BloomEffect", Lighting) end
+        if not br or br.Parent ~= Lighting then br = Lighting:FindFirstChildOfClass("BlurEffect") or Instance.new("BlurEffect", Lighting) end
+        if not df or df.Parent ~= Lighting then df = Lighting:FindFirstChildOfClass("DepthOfFieldEffect") or Instance.new("DepthOfFieldEffect", Lighting) end
+        if not cl or cl.Parent ~= Lighting then cl = Lighting:FindFirstChildOfClass("Clouds") or Instance.new("Clouds", Lighting) end
+        if not at or at.Parent ~= Lighting then at = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere", Lighting) end
+    end
+
     local function updateShaders()
         if not shaderActive then return end
-        Lighting.Ambient = shaderlight["yfbghj"]
-        Lighting.ClockTime = shaderlight["tgvbyd"]
-        Lighting.GeographicLatitude = shaderlight["ghuybhuyhj"]
-        Lighting.Brightness = shaderlight["khnbfth"]
-        Lighting.ColorShift_Bottom = shaderlight["hgyghkg"]
-        Lighting.ColorShift_Top = shaderlight["yfbhjku"]
-        Lighting.EnvironmentDiffuseScale = shaderlight["ygyyfgvhbjytrt"]
-        Lighting.EnvironmentSpecularScale = shaderlight["sdfcddc"]
-        Lighting.GlobalShadows = shaderlight["hgnujuu7thgr"]
-        Lighting.OutdoorAmbient = shaderlight["hyhnngtf"]
-        Lighting.ExposureCompensation = shaderlight["hdfr7thgr"]
-        Lighting.FogEnd = 999999
+        
+        getEffects()
 
-        local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", Lighting)
-        local bl = Lighting:FindFirstChildOfClass("BloomEffect") or Instance.new("BloomEffect", Lighting)
-        local br = Lighting:FindFirstChildOfClass("BlurEffect") or Instance.new("BlurEffect", Lighting)
-        local df = Lighting:FindFirstChildOfClass("DepthOfFieldEffect") or Instance.new("DepthOfFieldEffect", Lighting)
-        local cl = Lighting:FindFirstChildOfClass("Clouds") or Instance.new("Clouds", Lighting)
-        local at = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere", Lighting)
+        local amb = shaderlight["yfbghj"]
+        if Lighting.Ambient ~= amb then Lighting.Ambient = amb end
+        
+        local ct = shaderlight["tgvbyd"]
+        if Lighting.ClockTime ~= ct then Lighting.ClockTime = ct end
+        
+        local lat = shaderlight["ghuybhuyhj"]
+        if Lighting.GeographicLatitude ~= lat then Lighting.GeographicLatitude = lat end
+        
+        local bri = shaderlight["khnbfth"]
+        if Lighting.Brightness ~= bri then Lighting.Brightness = bri end
+        
+        local csb = shaderlight["hgyghkg"]
+        if Lighting.ColorShift_Bottom ~= csb then Lighting.ColorShift_Bottom = csb end
+        
+        local cst = shaderlight["yfbhjku"]
+        if Lighting.ColorShift_Top ~= cst then Lighting.ColorShift_Top = cst end
+        
+        local eds = shaderlight["ygyyfgvhbjytrt"]
+        if Lighting.EnvironmentDiffuseScale ~= eds then Lighting.EnvironmentDiffuseScale = eds end
+        
+        local ess = shaderlight["sdfcddc"]
+        if Lighting.EnvironmentSpecularScale ~= ess then Lighting.EnvironmentSpecularScale = ess end
+        
+        local gs = shaderlight["hgnujuu7thgr"]
+        if Lighting.GlobalShadows ~= gs then Lighting.GlobalShadows = gs end
+        
+        local oamb = shaderlight["hyhnngtf"]
+        if Lighting.OutdoorAmbient ~= oamb then Lighting.OutdoorAmbient = oamb end
+        
+        local exp = shaderlight["hdfr7thgr"]
+        if Lighting.ExposureCompensation ~= exp then Lighting.ExposureCompensation = exp end
+        
+        if Lighting.FogEnd ~= 999999 then Lighting.FogEnd = 999999 end
 
-        cc.Brightness = shaderlight["fhnchvhfjsd"]
-        cc.Contrast = shaderlight["ugtbbjhygt"]
-        cc.Saturation = shaderlight["tfbghuugbnjhg"]
-        cc.TintColor = shaderlight["fvrtccvghghj"]
-        cc.Enabled = shaderWL["cor"]
+        local cc_b = shaderlight["fhnchvhfjsd"]
+        if cc.Brightness ~= cc_b then cc.Brightness = cc_b end
+        
+        local cc_c = shaderlight["ugtbbjhygt"]
+        if cc.Contrast ~= cc_c then cc.Contrast = cc_c end
+        
+        local cc_s = shaderlight["tfbghuugbnjhg"]
+        if cc.Saturation ~= cc_s then cc.Saturation = cc_s end
+        
+        local cc_t = shaderlight["fvrtccvghghj"]
+        if cc.TintColor ~= cc_t then cc.TintColor = cc_t end
+        
+        local cc_e = shaderWL["cor"]
+        if cc.Enabled ~= cc_e then cc.Enabled = cc_e end
 
-        bl.Intensity = shaderlight["jnfdhbnfcvh"]
-        bl.Size = shaderlight["fvtyghj"]
-        bl.Threshold = shaderlight["ygbhnj"]
-        bl.Enabled = shaderWL["bl"]
+        local bl_i = shaderlight["jnfdhbnfcvh"]
+        if bl.Intensity ~= bl_i then bl.Intensity = bl_i end
+        
+        local bl_s = shaderlight["fvtyghj"]
+        if bl.Size ~= bl_s then bl.Size = bl_s end
+        
+        local bl_t = shaderlight["ygbhnj"]
+        if bl.Threshold ~= bl_t then bl.Threshold = bl_t end
+        
+        local bl_e = shaderWL["bl"]
+        if bl.Enabled ~= bl_e then bl.Enabled = bl_e end
 
-        br.Size = shaderlight["njnfg"]
-        br.Enabled = shaderWL["blr"]
+        local br_s = shaderlight["njnfg"]
+        if br.Size ~= br_s then br.Size = br_s end
+        
+        local br_e = shaderWL["blr"]
+        if br.Enabled ~= br_e then br.Enabled = br_e end
 
-        df.FarIntensity = shaderlight["jdfkd"]
-        df.FocusDistance = shaderlight["fvgsdfg"]
-        df.InFocusRadius = shaderlight["sdkvkflv"]
-        df.NearIntensity = shaderlight["hbjhd"]
-        df.Enabled = shaderWL["dof"]
+        local df_fi = shaderlight["jdfkd"]
+        if df.FarIntensity ~= df_fi then df.FarIntensity = df_fi end
+        
+        local df_fd = shaderlight["fvgsdfg"]
+        if df.FocusDistance ~= df_fd then df.FocusDistance = df_fd end
+        
+        local df_if = shaderlight["sdkvkflv"]
+        if df.InFocusRadius ~= df_if then df.InFocusRadius = df_if end
+        
+        local df_ni = shaderlight["hbjhd"]
+        if df.NearIntensity ~= df_ni then df.NearIntensity = df_ni end
+        
+        local df_e = shaderWL["dof"]
+        if df.Enabled ~= df_e then df.Enabled = df_e end
 
-        cl.Cover = shaderlight["gyhgtg"]
-        cl.Density = shaderlight["ygbhggv"]
-        cl.Color = shaderlight["jghbjhgyfd"]
+        local cl_c = shaderlight["gyhgtg"]
+        if cl.Cover ~= cl_c then cl.Cover = cl_c end
+        
+        local cl_d = shaderlight["ygbhggv"]
+        if cl.Density ~= cl_d then cl.Density = cl_d end
+        
+        local cl_co = shaderlight["jghbjhgyfd"]
+        if cl.Color ~= cl_co then cl.Color = cl_co end
 
-        at.Density = shaderlight["shdbsnjfc"]
-        at.Offset = shaderlight["skdjfkdm"]
-        at.Color = shaderlight["sjdjncdjf"]
-        at.Decay = shaderlight["efjdjfk"]
-        at.Glare = shaderlight["sejfd"]
-        at.Haze = shaderlight["jddfjsd"]
+        local at_d = shaderlight["shdbsnjfc"]
+        if at.Density ~= at_d then at.Density = at_d end
+        
+        local at_o = shaderlight["skdjfkdm"]
+        if at.Offset ~= at_o then at.Offset = at_o end
+        
+        local at_c = shaderlight["sjdjncdjf"]
+        if at.Color ~= at_c then at.Color = at_c end
+        
+        local at_de = shaderlight["efjdjfk"]
+        if at.Decay ~= at_de then at.Decay = at_de end
+        
+        local at_g = shaderlight["sejfd"]
+        if at.Glare ~= at_g then at.Glare = at_g end
+        
+        local at_h = shaderlight["jddfjsd"]
+        if at.Haze ~= at_h then at.Haze = at_h end
     end
 
     local function applyPreset(name)
@@ -340,9 +413,6 @@ return function(env)
         end
     end
 
-    ---------------------------------------------------------------------------
-    -- CARD DE SHADERS (UI)
-    ---------------------------------------------------------------------------
     Library:CreateSection(Page, "Shaders", "Right")
 
     Library:CreateToggle(Page, "Enable Shaders", false, function(state)
@@ -358,28 +428,23 @@ return function(env)
                 shaderLoopConn = nil
             end
             
-            -- Restaura as definiçoes padrões do jogo guardadas no backup
-            Lighting.ClockTime = shaderBackup.ClockTime
-            Lighting.Ambient = shaderBackup.Ambient
-            Lighting.Brightness = shaderBackup.Brightness
-            Lighting.ColorShift_Bottom = shaderBackup.ColorShift_Bottom
-            Lighting.ColorShift_Top = shaderBackup.ColorShift_Top
-            Lighting.EnvironmentDiffuseScale = shaderBackup.EnvDiffuse
-            Lighting.EnvironmentSpecularScale = shaderBackup.EnvSpecular
-            Lighting.GlobalShadows = shaderBackup.Shadows
-            Lighting.OutdoorAmbient = shaderBackup.Outdoor
-            Lighting.ExposureCompensation = shaderBackup.Exposure
-            Lighting.GeographicLatitude = shaderBackup.Lat
+            if Lighting.ClockTime ~= shaderBackup.ClockTime then Lighting.ClockTime = shaderBackup.ClockTime end
+            if Lighting.Ambient ~= shaderBackup.Ambient then Lighting.Ambient = shaderBackup.Ambient end
+            if Lighting.Brightness ~= shaderBackup.Brightness then Lighting.Brightness = shaderBackup.Brightness end
+            if Lighting.ColorShift_Bottom ~= shaderBackup.ColorShift_Bottom then Lighting.ColorShift_Bottom = shaderBackup.ColorShift_Bottom end
+            if Lighting.ColorShift_Top ~= shaderBackup.ColorShift_Top then Lighting.ColorShift_Top = shaderBackup.ColorShift_Top end
+            if Lighting.EnvironmentDiffuseScale ~= shaderBackup.EnvDiffuse then Lighting.EnvironmentDiffuseScale = shaderBackup.EnvDiffuse end
+            if Lighting.EnvironmentSpecularScale ~= shaderBackup.EnvSpecular then Lighting.EnvironmentSpecularScale = shaderBackup.EnvSpecular end
+            if Lighting.GlobalShadows ~= shaderBackup.Shadows then Lighting.GlobalShadows = shaderBackup.Shadows end
+            if Lighting.OutdoorAmbient ~= shaderBackup.Outdoor then Lighting.OutdoorAmbient = shaderBackup.Outdoor end
+            if Lighting.ExposureCompensation ~= shaderBackup.Exposure then Lighting.ExposureCompensation = shaderBackup.Exposure end
+            if Lighting.GeographicLatitude ~= shaderBackup.Lat then Lighting.GeographicLatitude = shaderBackup.Lat end
             
-            -- Desativa os efeitos gerados
-            local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
-            if cc then cc.Enabled = false end
-            local bl = Lighting:FindFirstChildOfClass("BloomEffect")
-            if bl then bl.Enabled = false end
-            local br = Lighting:FindFirstChildOfClass("BlurEffect")
-            if br then br.Enabled = false end
-            local df = Lighting:FindFirstChildOfClass("DepthOfFieldEffect")
-            if df then df.Enabled = false end
+            getEffects()
+            if cc.Enabled ~= false then cc.Enabled = false end
+            if bl.Enabled ~= false then bl.Enabled = false end
+            if br.Enabled ~= false then br.Enabled = false end
+            if df.Enabled ~= false then df.Enabled = false end
         end
     end)
 
@@ -403,13 +468,9 @@ return function(env)
         shaderlight["hgnujuu7thgr"] = shaderBackup.Shadows
         shaderlight["hyhnngtf"] = shaderBackup.Outdoor
         shaderlight["hdfr7thgr"] = shaderBackup.Exposure
-        
         SendNotification("Shaders reset to original values", 2)
     end)
 
-    ---------------------------------------------------------------------------
-    -- OUTROS MENUS EXISTENTES (MANTIDOS E INTACTOS)
-    ---------------------------------------------------------------------------
     Library:CreateSection(Page, "Color Calibrator", "Right")
     
     local CalibratorState = { enabled = false, fullbright = false, contrast = 0, brightness = 0, saturation = 0, hue = 0, opacity = 1 }
@@ -814,5 +875,29 @@ return function(env)
     Library:CreateSlider(Page, "Fog Power", 0, 100, 50, function(val)
         CustomFogState.power = val
         ApplyCustomFog()
+    end)
+
+    task.defer(function()
+        for i = 1, 20 do
+            local found = false
+            for _, v in ipairs(Page:GetDescendants()) do
+                if v:IsA("TextLabel") and v.Text == "Fog Color" then
+                    local topBtn = v.Parent
+                    if topBtn and topBtn:IsA("TextButton") then
+                        local container = topBtn.Parent
+                        if container and container:IsA("Frame") then
+                            container.Size = UDim2.new(1, 0, 0, 140)
+                            if firesignal then
+                                pcall(firesignal, topBtn.MouseButton1Click)
+                            end
+                            found = true
+                            break
+                        end
+                    end
+                end
+            end
+            if found then break end
+            task.wait(0.1)
+        end
     end)
 end
