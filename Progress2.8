@@ -1,41 +1,5 @@
 print ("sucesso")
 
-Este script foi otimizado para reduzir a carga sobre a CPU e maximizar a taxa de
-quadros por segundo (FPS). Foram aplicadas práticas avançadas de otimização em
-Luau para Roblox, sem alterar o comportamento ou as correções de bugs
-estabelecidas anteriormente.
-
-Principais Otimizações Aplicadas:
-
-1.  Cache de Métodos Globais (Upvalues): Funções nativas frequentemente
-    chamadas, como Instance.new, Color3.fromRGB, math.sqrt, string.format e
-    construtores de vetores, foram armazenadas em variáveis locais no escopo do
-    arquivo. Isso reduz o custo de busca na tabela global do ambiente a cada
-    ciclo de atualização.
-2.  Cálculo de Distância por Raiz Quadrada Otimizado: Na lógica de busca de
-    portas mais próximas, o cálculo agora é feito por distância quadrada (dx*dx
-    + dy*dy + dz*dz) e a operação pesada de raiz quadrada (math.sqrt) só é
-    executada uma única vez no final com o objeto mais próximo selecionado,
-    economizando processamento.
-3.  Throttling de Renderização da UI (GetUp Timer): Em monitores de alta taxa de
-    atualização (144Hz, 240Hz, etc.), o evento PreRender do GetUp Timer
-    executava a formatação de strings de RichText e atualizava as propriedades
-    visuais em taxas excessivas. Adicionamos um limitador de tempo de
-    renderização que restringe a atualização visual das labels a ~30 vezes por
-    segundo, o que economiza processamento de GPU sem perda perceptível de
-    fluidez visual.
-4.  Eliminação de Busca por Nome (Computer Tables): Criado um cache em memória
-    para armazenar os gatilhos físicos de interação dos computadores
-    (ComputerTrigger), eliminando a necessidade de chamar o método
-    :GetChildren() e buscas de strings de texto no loop de renderização do
-    Heartbeat.
-5.  Otimização de Pulos de Raiz no WalkSpeed: O cálculo de velocidade real por
-    math.sqrt agora é completamente ignorado se a velocidade vetorial quadrada
-    indicar que o jogador está estático (parado), eliminando cálculos
-    redundantes de física.
-
-Aqui está o código completo, estabilizado e otimizado:
-
 return function(env)
     local Library = env.Library
     local Page = env.Page
