@@ -339,7 +339,52 @@ local Translations = {
         ["Delet Config"] = "Deletar Config",
         ["Infinite Yield"] = "Infinite Yield",
         ["YouTube Music"] = "Música do YouTube",
-        ["External Scripts"] = "Scripts Externos"
+        ["External Scripts"] = "Scripts Externos",
+        ["A configuration with this name already exists!"] = "Uma configuração com este nome já existe!",
+        ["Config file not found or not supported!"] = "Arquivo de configuração não encontrado ou não suportado!",
+        ["Configs Reset! Please re-execute script for clean state."] = "Configurações resetadas! Por favor, reexecute o script para limpar tudo.",
+        ["Accessory Equipped!"] = "Acessório Equipado!",
+        ["Tool Equipped!"] = "Ferramenta Equipada!",
+        ["Clothing Equipped!"] = "Roupas Equipadas!",
+        ["Model Attached!"] = "Modelo Anexado!",
+        ["Skin Applied Successfully!"] = "Skin Aplicada com Sucesso!",
+        ["Insira um ID de Bundle válido."] = "Por favor, insira um ID de Pacote válido.",
+        ["Please enter a valid Bundle ID."] = "Por favor, insira um ID de Pacote válido.",
+        ["Insira um ID de Ativo válido."] = "Por favor, insira um ID de Ativo válido.",
+        ["Please enter a valid Asset ID."] = "Por favor, insira um ID de Ativo válido.",
+        ["User not found!"] = "Usuário não encontrado!",
+        ["Character not found!"] = "Personagem não encontrado!",
+        ["Beast Gone"] = "Fera se Foi",
+        ["Resuming."] = "Retomando.",
+        ["Beast Warning"] = "Aviso de Fera",
+        ["Standing on safe platform."] = "Ficando na plataforma segura.",
+        ["Beast Away"] = "Fera Longe",
+        ["Returning to ground."] = "Retornando ao chão.",
+        ["Teleported! Starting farm instantly."] = "Teleportado! Começando o farm instantaneamente.",
+        ["Lobby State"] = "Estado do Lobby",
+        ["Waiting for the game match to start..."] = "Aguardando o início da partida...",
+        ["Enable 'Enable Auto Farm' first!"] = "Ative 'Enable Auto Farm' primeiro!",
+        ["Auto Save (Silent) | Players in pod will be saved magically."] = "Salvar Auto (Invisível) | Jogadores na cápsula serão salvos magicamente.",
+        ["Auto Help (Teleport) | Enabled"] = "Ajudar Auto (Teleporte) | Ativado",
+        ["Auto Help (Teleport) | Ativado"] = "Ajudar Auto (Teleporte) | Ativado",
+        ["Anti AFK cannot be disabled while Auto Farm is active!"] = "O Anti AFK não pode ser desativado enquanto o Auto Farm estiver ativo!",
+        ["Auto Rejoin Enabled"] = "Reconectar Auto Ativado",
+        ["Moderator Alert/Kick Enabled"] = "Alerta/Expulsar Moderador Ativado",
+        ["Beast Mode Detected. Farm Disabled."] = "Modo Fera Detectado. Farm Desativado.",
+        ["Targets detected. Farm started."] = "Alvos detectados. Farm iniciado.",
+        ["No checkpoint set!"] = "Nenhum ponto de retorno definido!",
+        ["Beast not found or not spawned!"] = "Fera não encontrada ou não nasceu!",
+        ["Shaders reset to original values"] = "Shaders resetados para os valores originais",
+        ["The Beast has been released!"] = "A Fera foi libertada!",
+        ["BeastPower is Full"] = "O Poder da Fera está Cheio",
+        ["Applying White Bricks texture..."] = "Aplicando textura de Tijolos Brancos...",
+        ["Applying Snow texture..."] = "Aplicando textura de Neve...",
+        ["Applying Minecraft texture..."] = "Aplicando textura do Minecraft...",
+        ["Removing map textures, please wait..."] = "Removendo texturas do mapa, por favor aguarde...",
+        ["Boosting game performance, please wait..."] = "Aumentando a performance do jogo, por favor aguarde...",
+        ["This feature is only available on Touch/Mobile devices!"] = "Esta função só está disponível para dispositivos Móveis/Touch!",
+        ["Please select a valid player first!"] = "Por favor, selecione um jogador válido primeiro!",
+        ["HUD Controls reset to defaults!"] = "Controles do HUD resetados para o padrão!"
     },
     ["ES"] = {
         ["Highlight"] = "Destaques (ESP)", 
@@ -444,7 +489,7 @@ local Translations = {
         ["PLAYER INFO"] = "INFO DEL JUGADOR",
         ["SERVER INFO"] = "INFO DEL SERVIDOR",
         ["Thank you for using Nexvoid."] = "Gracias por usar NexVoid.", 
-        ["NexVoid is a free script, don't pay for it."] = "NexVoid es un script gratuito, no pagues por él.",
+        ["NexVoid is a free script, don't pay for it."] = "Gracias por usar NexVoid. Es gratis, no pagues por él.",
         ["Survivor"] = "Superviviente", 
         ["Auto Save (Teleport)"] = "Auto Salvar (Teletransporte)",
         ["Auto Save (Silent)"] = "Auto Salvar (Invisible)", 
@@ -681,12 +726,58 @@ local Translations = {
         ["Delet Config"] = "Eliminar Config",
         ["Infinite Yield"] = "Infinite Yield",
         ["YouTube Music"] = "Música de YouTube",
-        ["External Scripts"] = "Scripts Externos"
+        ["External Scripts"] = "Scripts Externos",
+        ["A configuration with this name already exists!"] = "¡Ya existe una configuración con este nombre!",
+        ["Config file not found or not supported!"] = "¡Archivo de configuración no encontrado o no soportado!",
+        ["Configs Reset! Please re-execute script for clean state."] = "¡Configuraciones restablecidas! Por favor, vuelva a ejecutar el script para un estado limpio.",
+        ["Accessory Equipped!"] = "¡Accesorio Equipado!",
+        ["Tool Equipped!"] = "¡Herramienta Equipada!",
+        ["Clothing Equipped!"] = "¡Ropa Equipada!",
+        ["Model Attached!"] = "¡Modelo Acoplado!",
+        ["Skin Applied Successfully!"] = "¡Skin Aplicada con Éxito!",
+        ["Insira um ID de Bundle válido."] = "Por favor, ingrese un ID de Paquete válido.",
+        ["Please enter a valid Bundle ID."] = "Por favor, ingrese un ID de Paquete válido.",
+        ["Insira um ID de Ativo válido."] = "Por favor, ingrese un ID de Objeto válido.",
+        ["Please enter a valid Asset ID."] = "Por favor, ingrese un ID de Objeto válido.",
+        ["User not found!"] = "¡Usuario no encontrado!",
+        ["Character not found!"] = "¡Personaje no encontrado!",
+        ["Beast Gone"] = "Bestia se Fue",
+        ["Resuming."] = "Reanudando.",
+        ["Beast Warning"] = "Aviso de Bestia",
+        ["Standing on safe platform."] = "De pie en plataforma segura.",
+        ["Beast Away"] = "Bestia Lejos",
+        ["Returning to ground."] = "Volviendo al suelo.",
+        ["Teleported! Starting farm instantly."] = "¡Teletransportado! Iniciando farm al instante.",
+        ["Lobby State"] = "Estado de Lobby",
+        ["Waiting for the game match to start..."] = "Esperando que comience la partida...",
+        ["Enable 'Enable Auto Farm' first!"] = "¡Active 'Enable Auto Farm' primero!",
+        ["Auto Save (Silent) | Players in pod will be saved magically."] = "Auto Salvar (Silencioso) | Los jugadores en cápsula se salvarán mágicamente.",
+        ["Auto Help (Teleport) | Enabled"] = "Auto Ayudar (Teletransporte) | Activado",
+        ["Auto Help (Teleport) | Ativado"] = "Auto Ayudar (Teletransporte) | Activado",
+        ["Anti AFK cannot be disabled while Auto Farm is active!"] = "¡El Anti AFK no se puede desactivar mientras el Auto Farm esté activo!",
+        ["Auto Rejoin Enabled"] = "Auto Reentrar Activado",
+        ["Moderator Alert/Kick Enabled"] = "Alerta/Expulsar Moderador Activado",
+        ["Beast Mode Detected. Farm Disabled."] = "Modo Bestia Detectado. Farm Desactivado.",
+        ["Targets detected. Farm started."] = "Objetivos detectados. Farm iniciado.",
+        ["No checkpoint set!"] = "¡No se ha establecido ningún punto de control!",
+        ["Beast not found or not spawned!"] = "¡Bestia no encontrada o no aparecida!",
+        ["Shaders reset to original values"] = "Shaders restablecidos a valores originales",
+        ["The Beast has been released!"] = "¡La Bestia ha sido liberada!",
+        ["BeastPower is Full"] = "El Poder de la Bestia está Lleno",
+        ["Applying White Bricks texture..."] = "Aplicando textura de Ladrillos Blancos...",
+        ["Applying Snow texture..."] = "Aplicando textura de Nieve...",
+        ["Applying Minecraft texture..."] = "Aplicando textura de Minecraft...",
+        ["Removing map textures, please wait..."] = "Eliminando texturas del mapa, por favor espere...",
+        ["Boosting game performance, please wait..."] = "Mejorando el rendimiento del juego, por favor espere...",
+        ["This feature is only available on Touch/Mobile devices!"] = "¡Esta función solo está disponible en dispositivos móviles/táctiles!",
+        ["Please select a valid player first!"] = "¡Por favor, seleccione un jugador válido primero!",
+        ["HUD Controls reset to defaults!"] = "¡Controles de HUD restablecidos a los valores predeterminados!"
     }
 }
 
 local string_find = string.find
 local string_sub = string.sub
+local string_gsub = string.gsub
 local pairs = pairs
 local ipairs = ipairs
 
@@ -701,21 +792,78 @@ local function GetEnglishKey(value)
     return EnglishKeyCache[value] or value
 end
 
+local Patterns = {
+    ["PT"] = {
+        {"^Config '([^']+)' Saved!$", "Configuração '%s' Salva!"},
+        {"^Config '([^']+)' Loaded!$", "Configuração '%s' Carregada!"},
+        {"^Default config set to '([^']+)'$", "Configuração padrão definida para '%s'"},
+        {"^Config '([^']+)' Deleted!$", "Configuração '%s' Deletada!"},
+        {"^Welcome, <b><font color='rgb%(255,255,255%)'>(.-)</font></b>%.$", "Bem-vindo, <b><font color='rgb(255,255,255)'>%s</font></b>."},
+        {"^Failed to load item ID: (.-)$", "Falha ao carregar o item com ID: %s"},
+        {"^Failed to load skin for (.-)$", "Falha ao carregar a skin de %s"},
+        {"^Skin Applied to (.-)$", "Skin Aplicada em %s"},
+        {"^Skin Reset for (.-)$", "Skin Resetada para %s"},
+        {"^Restored (.-) back to normal%.$", "Restaurado %s de volta ao normal."},
+        {"^Calculating jump%... Waiting (.-)s$", "Calculando pulo... Aguardando %ss"},
+        {"^Teleported to (.-)%!$", "Teleportado para %s!"},
+        {"^BeastPower Back In: (.-)%%$", "Poder da Fera em: %s%%"},
+        {"^Beast Spawns In: (.-)$", "Fera Nasce em: %s"},
+        {"^OPENING: (.-)%%$", "ABRINDO: %s%%"}
+    },
+    ["ES"] = {
+        {"^Config '([^']+)' Saved!$", "Configuración '%s' Guardada!"},
+        {"^Config '([^']+)' Loaded!$", "Configuración '%s' Cargada!"},
+        {"^Default config set to '([^']+)'$", "Configuración predeterminada establecida en '%s'"},
+        {"^Config '([^']+)' Deleted!$", "Configuración '%s' Eliminada!"},
+        {"^Welcome, <b><font color='rgb%(255,255,255%)'>(.-)</font></b>%.$", "Bienvenido, <b><font color='rgb(255,255,255)'>%s</font></b>."},
+        {"^Failed to load item ID: (.-)$", "Error al cargar el artículo con ID: %s"},
+        {"^Failed to load skin for (.-)$", "Error al cargar la skin de %s"},
+        {"^Skin Applied to (.-)$", "Skin Aplicada a %s"},
+        {"^Skin Reset for (.-)$", "Skin Restablecida para %s"},
+        {"^Restored (.-) back to normal%.$", "Restaurado %s de vuelta a la normalidad."},
+        {"^Calculating jump%... Waiting (.-)s$", "Calculando salto... Esperando %ss"},
+        {"^Teleported to (.-)%!$", "¡Teletransportado a %s!"},
+        {"^BeastPower Back In: (.-)%%$", "Poder de Bestia en: %s%%"},
+        {"^Beast Spawns In: (.-)$", "Bestia Aparece en: %s"},
+        {"^OPENING: (.-)%%$", "ABRIENDO: %s%%"}
+    }
+}
+
 local TranslationModule = {}
 
 function TranslationModule.Translate(gui, lang)
     if not gui then return end
     local dict = Translations[lang]
+    local patternsList = Patterns[lang]
     local elements = gui:GetDescendants()
+    
     for i = 1, #elements do
         local element = elements[i]
         if element:IsA("TextLabel") or element:IsA("TextButton") then
             local currentText = element.Text
             local original = element:GetAttribute("OriginalText")
-            if not original and Translations["PT"][currentText] then
-                original = currentText
-                element:SetAttribute("OriginalText", original)
+            
+            if not original then
+                local isPatternMatch = false
+                if patternsList then
+                    for j = 1, #patternsList do
+                        local patData = patternsList[j]
+                        local pat = patData[1]
+                        local matchVal = string_match(currentText, pat)
+                        if matchVal then
+                            original = currentText
+                            element:SetAttribute("OriginalText", original)
+                            isPatternMatch = true
+                            break
+                        end
+                    end
+                end
+                if not isPatternMatch and Translations["PT"][currentText] then
+                    original = currentText
+                    element:SetAttribute("OriginalText", original)
+                end
             end
+            
             if original then
                 if lang == "EN" then
                     local splitPos = string_find(currentText, ": ")
@@ -734,6 +882,19 @@ function TranslationModule.Translate(gui, lang)
                             element.Text = translatedText .. ": " .. (dict[val] or val)
                         else
                             element.Text = translatedText
+                        end
+                    else
+                        if patternsList then
+                            for j = 1, #patternsList do
+                                local patData = patternsList[j]
+                                local pat = patData[1]
+                                local repl = patData[2]
+                                local matchVal = string_match(original, pat)
+                                if matchVal then
+                                    element.Text = string_format(repl, matchVal)
+                                    break
+                                end
+                            end
                         end
                     end
                 end
